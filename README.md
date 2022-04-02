@@ -8,7 +8,7 @@ Create conda environment using the environment.yml file and using the command: `
 edit path in Train_model.py
 make sure to have folders names (shown below)
 
-![alt text](https://github.com/norton-chris/Cell-Segmentation/change_dataset_path.png)
+![alt text](https://github.com/norton-chris/Cell-Segmentation/blob/master/change_dataset_path.png)
 
 Then just run python Train_model.py
 
