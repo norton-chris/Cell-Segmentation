@@ -20,13 +20,11 @@ class Patcher:
         return self.patch_image()
 
     def patch_image(self):
-        max_x_pixel = self.img[0].shape
-        max_y_pixel = self.img[1].shape
+        max_x_pixel = self.img.shape
+        max_y_pixel = self.img.shape
         # batch_size = int((float(max_x_pixel[0]) / float(self.step)) * (float(max_y_pixel[0]) / float(self.step)))
         curx = 0
         cury = 0
-
-
 
         i = 0
         if self.image:
@@ -37,11 +35,8 @@ class Patcher:
             x_cur = curx
             while curx < max_x_pixel[0]:
 
-                if self.image:
-                    cropped = self.img[curx:curx+self.step, cury:cury+self.step]
+                cropped = self.img[curx:curx+self.step, cury:cury+self.step,:]
 
-                else:
-                    cropped = self.img[curx:curx+self.step, cury:cury+self.step]
 
                 curx = curx + self.step
 

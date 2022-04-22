@@ -1,10 +1,10 @@
 import os
 
-path = "E:/Han Project/TrainingDataset/ImagesPNG/"
-path1 = "E:/Han Project/TrainingDataset/LabelsPNG/"
+path = "E:/Han Project/TrainingDataset/clean_dataset/TrainingDataset/Images/"
+path1 = "E:/Han Project/TrainingDataset/clean_dataset/TrainingDataset/Labels/"
 
-output = "E:/Han Project/TrainingDataset/RenamePNGImages/"
-output1 = "E:/Han Project/TrainingDataset/RenamePNGLabels/"
+output = "E:/Han Project/TrainingDataset/clean_dataset/TrainingDataset/RenamedImages"
+output1 = "E:/Han Project/TrainingDataset/clean_dataset/TrainingDataset/RenamedLabels"
 r=0
 found = False
 total = 0

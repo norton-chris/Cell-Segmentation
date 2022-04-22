@@ -1,7 +1,7 @@
 import os, sys
 from PIL import Image
-path = "E:/Han Project/TrainingDataset/TrainingDataset/Images/"
-outpath = "E:/Han Project/TrainingDataset/TrainingDataset/ImagesPNG/"
+path = "E:/Han Project/TrainingDataset/TrainingDataset/RenameTIFImages/"
+outpath = "E:/Han Project/TrainingDataset/TrainingDataset/Images/"
 error = 0
 error_file = []
 for infile in os.listdir(path):

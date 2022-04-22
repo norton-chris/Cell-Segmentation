@@ -10,6 +10,7 @@ import tensorflow as tf
 
 import Patcher
 from Patcher import Patcher
+from Random_patcher import Random_patcher
 from PIL import Image
 
 
@@ -32,86 +33,72 @@ class BatchLoad(keras.utils.all_utils.Sequence):
 
     def __data_generation(self, batch_paths):
         # Initialization
-        images = np.empty((self.batch_size, *self.dim), dtype=int)  # define the numpy array for the batch
-        masks = np.empty((self.batch_size, self.dim[0], self.dim[1], self.num_classes), dtype=bool)
+        images = np.zeros((self.batch_size, *self.dim), dtype=int)  # define the numpy array for the batch
+        masks = np.zeros((self.batch_size, self.dim[0], self.dim[1], self.num_classes), dtype=bool)
         i = 0
         num_of_images = 0
-        image_path = self.paths + "Image_out/"
-        label_path = self.paths + "Label_out/"
+        image_path = self.paths + "Images/"
+        label_path = self.paths + "Labels/"
         for path in batch_paths:
-            print("loop:", image_path + path)
-            img = cv2.imread(image_path + path, cv2.IMREAD_COLOR)
-            lab = cv2.imread(label_path + path, cv2.IMREAD_COLOR)
-            print(type(img))
-            tf.image.adjust_contrast(
-                img, 2
-            )
-            plt.imshow(img)
-            plt.show()
+            #print("loop:", image_path + path)
+            img = cv2.imread(image_path + path, -1)
+            lab = cv2.imread(label_path + path, -1)
 
+            #  img = cv2.GaussianBlur(img, (5, 5), cv2.BORDER_DEFAULT)
+            # lab = cv2.GaussianBlur(lab, (5, 5), cv2.BORDER_DEFAULT)
 
+            # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            # lab = cv2.cvtColor(lab, cv2.COLOR_BGR2GRAY)
             try:
-                img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-                lab = cv2.cvtColor(lab, cv2.COLOR_BGR2GRAY)
-            except:
-                print("error in cvtcolor")
+                #print("try img shape:", img.shape)
+                #print("try lab shape:", lab.shape)
+                img = np.expand_dims(img, axis=2)
+                lab = np.expand_dims(lab, axis=2)
+            except Exception as e:
+                print(e)
+                #print("img shape:", img.shape)
+                #print("lab shape:", lab.shape)
                 continue
-            plt.imshow(img)
-            plt.show()
-            # img = np.array(img)
-            # lab = np.array(lab)
 
+            # plt.imshow(img)
+            # plt.show()
 
+            patcher_img = Random_patcher(img, batch_size= self.batch_size, step=self.step)
+            patcher_lab = Random_patcher(lab, batch_size= self.batch_size, step=self.step, image = False)
+            images = patcher_img.patch_image()
+            masks = patcher_lab.patch_image()
 
-            max_x_pixel = img[0].shape
-            max_y_pixel = img[1].shape
-            batch_size = int((float(max_x_pixel[0]) / float(self.step)) * int(float(max_y_pixel[0]) / float(self.step)))
-            num_of_images += batch_size
-            images = np.resize(images, [num_of_images, *self.dim])
-            masks = np.resize(images, [num_of_images, self.dim[0], self.dim[1], self.num_classes])
-
-            input_size = self.dim
-            # image_patches = patchify(img, (input_size, input_size), step=512)
-            # label_patches = patchify(lab, (input_size, input_size), step=512)
-            patcher_img = Patcher(img, batch_size= batch_size, step=self.step)
-            patcher_lab = Patcher(lab, batch_size= batch_size, step=self.step, image = False)
-            image_patches, actual_batch_size = patcher_img.patch_image()
-            label_patches, actual_batch_size = patcher_lab.patch_image()
-            # num_patch = len(image_patches) - 1
-            # rand_patch = random.randint(0, num_patch)
-            # image_patch = image_patches[rand_patch]
-            # label_patch = label_patches[rand_patch][0]
-            # print("image shape before cvtcolor:", image_patch.shape)
-            # image_patch = cv2.cvtColor(image_patch, cv2.COLOR_BGR2GRAY)
-            # label_patch = cv2.cvtColor(label_patch, cv2.COLOR_BGR2GRAY)
-            # print("reshape:", image_patches[rand_patch].reshape(512, 512, -1).shape)
-
-            k = 0
-
-            while k < actual_batch_size:
-                images[i] = image_patches[k]
-                masks[i] = label_patches[k]
-                if images[i].max() == 0.00:
-                    print("image array shape:", images.shape)
-                    print("all pixels 0")
-                    k += 1
-                    continue # don't include black images
-                i += 1
-                k += 1
+            # k = 0
+            # # plt.imshow(patcher_img[0])
+            # # plt.show()
+            # # plt.imshow(patcher_lab[0])
+            # # plt.show()
+            # while k < self.batch_size:
+            #     images[i] = image_patches[k]
+            #     masks[i] = label_patches[k]
+            #     # plt.imshow(masks[i])
+            #     # plt.show()
+            #     if masks[i].max() == 0.00:
+            #         # print("image array shape:", images.shape)
+            #         # print("all pixels 0")
+            #         k += 1
+            #         continue # don't include black images
+            #     i += 1
+            #     k += 1
                 #print("image", i)
 
             # if images[i].max() == 0:
             #     print("image array shape:", images.shape)
             #     print("all pixels 0")
+            i += 1
 
 
 
         return images, masks
 
     def __getitem__(self, index):
-        print(self.paths)
-        paths_temp = os.listdir(self.paths + "Image_out/")[
-                     index * self.batch_size:(index + 1) * self.batch_size]
+        # print(self.paths)
+        paths_temp = os.listdir(self.paths + "Images/")
 
         # can augment here
         images, masks = self.__data_generation(paths_temp)
