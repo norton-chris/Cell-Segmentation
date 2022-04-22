@@ -201,59 +201,59 @@ class UNET(object):
         # model.summary()
         return model
 
-    class UNET(object):
-
-        def __init__(self, n_filter=16, input_dim=(512, 512, 1), learning_rate=3e-5, num_classes=1):
-            self.n_filter = n_filter
-            self.input = Input(input_dim)
-            self.lr = learning_rate
-            self.num_classes = num_classes
-
-        def create_model(self):
-            # Level 1
-            skip1 = convolution_relu_test(self.n_filter, 5)(self.input)
-            skip1 = BatchNormalization()(skip1)
-            down1 = MaxPooling2D(pool_size=[2, 2])(skip1)
-
-            # level 2
-            skip2 = convolution_relu_test(self.n_filter * 2, 5)(down1)
-            skip2 = BatchNormalization()(skip2)
-            down2 = MaxPooling2D(pool_size=[2, 2])(skip2)
-
-            # level 3
-            skip3 = convolution_relu_test(self.n_filter * 4, 5)(down2)
-            skip3 = BatchNormalization()(skip3)
-            down3 = MaxPooling2D(pool_size=[2, 2])(skip3)
-
-            # level 4
-            skip4 = convolution_relu_test(self.n_filter * 8, 5)(down3)
-            skip4 = BatchNormalization()(skip4)
-            down4 = MaxPooling2D(pool_size=[2, 2])(skip4)
-
-            # level 5. Deepest
-            l5 = convolution_relu_test(self.n_filter * 16, 5)(down4)
-
-            # level 4
-            concat4 = concatenate([UpSampling2D(size=[2, 2])(l5), skip4])
-            l4 = convolution_relu_test(self.n_filter * 8, 5)(concat4)
-
-            # level 3
-            concat3 = concatenate([UpSampling2D(size=[2, 2])(l4), skip3])
-            l3 = convolution_relu_test(self.n_filter * 4, 5)(concat3)
-
-            # level 2
-            concat2 = concatenate([UpSampling2D(size=[2, 2])(l3), skip2])
-            l2 = convolution_relu_test(self.n_filter * 2, 5)(concat2)
-
-            # level 1
-            concat1 = concatenate([UpSampling2D(size=[2, 2])(l2), skip1])
-            l1 = convolution_relu_test(self.n_filter, 5)(concat1)
-
-            output = Conv2D(1, [1, 1], activation='sigmoid')(l1)
-
-            model = Model(inputs=self.input, outputs=output)
-            opt = Adam(lr=self.lr)
-            opt = tf.keras.mixed_precision.LossScaleOptimizer(opt)
-            model.compile(optimizer=opt, loss=Scoring.dice_plus_bce_loss, metrics=Scoring.dice_scoring)
-            # model.summary()
-            return model
+    # class UNET(object):
+    #
+    #     def __init__(self, n_filter=16, input_dim=(512, 512, 1), learning_rate=3e-5, num_classes=1):
+    #         self.n_filter = n_filter
+    #         self.input = Input(input_dim)
+    #         self.lr = learning_rate
+    #         self.num_classes = num_classes
+    #
+    #     def create_model(self):
+    #         # Level 1
+    #         skip1 = convolution_relu_test(self.n_filter, 5)(self.input)
+    #         skip1 = BatchNormalization()(skip1)
+    #         down1 = MaxPooling2D(pool_size=[2, 2])(skip1)
+    #
+    #         # level 2
+    #         skip2 = convolution_relu_test(self.n_filter * 2, 5)(down1)
+    #         skip2 = BatchNormalization()(skip2)
+    #         down2 = MaxPooling2D(pool_size=[2, 2])(skip2)
+    #
+    #         # level 3
+    #         skip3 = convolution_relu_test(self.n_filter * 4, 5)(down2)
+    #         skip3 = BatchNormalization()(skip3)
+    #         down3 = MaxPooling2D(pool_size=[2, 2])(skip3)
+    #
+    #         # level 4
+    #         skip4 = convolution_relu_test(self.n_filter * 8, 5)(down3)
+    #         skip4 = BatchNormalization()(skip4)
+    #         down4 = MaxPooling2D(pool_size=[2, 2])(skip4)
+    #
+    #         # level 5. Deepest
+    #         l5 = convolution_relu_test(self.n_filter * 16, 5)(down4)
+    #
+    #         # level 4
+    #         concat4 = concatenate([UpSampling2D(size=[2, 2])(l5), skip4])
+    #         l4 = convolution_relu_test(self.n_filter * 8, 5)(concat4)
+    #
+    #         # level 3
+    #         concat3 = concatenate([UpSampling2D(size=[2, 2])(l4), skip3])
+    #         l3 = convolution_relu_test(self.n_filter * 4, 5)(concat3)
+    #
+    #         # level 2
+    #         concat2 = concatenate([UpSampling2D(size=[2, 2])(l3), skip2])
+    #         l2 = convolution_relu_test(self.n_filter * 2, 5)(concat2)
+    #
+    #         # level 1
+    #         concat1 = concatenate([UpSampling2D(size=[2, 2])(l2), skip1])
+    #         l1 = convolution_relu_test(self.n_filter, 5)(concat1)
+    #
+    #         output = Conv2D(1, [1, 1], activation='sigmoid')(l1)
+    #
+    #         model = Model(inputs=self.input, outputs=output)
+    #         opt = Adam(lr=self.lr)
+    #         opt = tf.keras.mixed_precision.LossScaleOptimizer(opt)
+    #         model.compile(optimizer=opt, loss=Scoring.dice_plus_bce_loss, metrics=Scoring.dice_scoring)
+    #         # model.summary()
+    #         return model

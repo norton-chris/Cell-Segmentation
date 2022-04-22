@@ -130,13 +130,13 @@ if gpus:
     # Memory growth must be set before GPUs have been initialized
     print(e)
 #root = "E:/Han Project/TrainingDataset/TrainingDataset/output/train/"
-root = "E:/Han Project/TrainingDataset/TrainSubset/"
+root = "E:/Han Project/TrainingDataset/clean_dataset/TrainingDataset/test/"
 test = root + "Images/"
 #test_mask = "E:/Han Project/TrainingDataset/TrainingDataset/output/train/Labels/"
 dims = 512
 step = 512
 # Predict on patches
-model = load_model('h5_files/train_subset_UNet512JPG10E-20220410-12.50.h5',
+model = load_model('h5_files/train_UNet512TIF50E-20220422-01.25.h5',
                   custom_objects = { 'dice_plus_bce_loss': dice_plus_bce_loss,
                                     'dice_scoring': dice_scoring})
 
@@ -153,30 +153,35 @@ for path in os.listdir(test):
     img = cv2.imread(test + path, -1)
     lab = cv2.imread(root + "Labels/" + path, -1)
 
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    lab = cv2.cvtColor(lab, cv2.COLOR_BGR2GRAY)
-    try:
-        img = np.expand_dims(img, axis=2)
-        lab = np.expand_dims(lab, axis=2)
-    except Exception as e:
-        print(e)
-        print("img shape:", img.shape)
-        continue
+    # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    # lab = cv2.cvtColor(lab, cv2.COLOR_BGR2GRAY)
+    # try:
+    #     img = np.expand_dims(img, axis=2)
+    #     lab = np.expand_dims(lab, axis=2)
+    # except Exception as e:
+    #     print(e)
+    #     print("img shape:", img.shape)
+    #     continue
 
     # plt.imshow(img)
     # plt.show()
 
-    patcher_img = Random_patcher(img, batch_size=4, step=step)
-    patcher_lab = Random_patcher(lab, batch_size=4, step=step, image=False)
-    images = patcher_img.patch_image()
-    masks = patcher_lab.patch_image()
+    # patcher_img = Random_patcher(img, batch_size=4, step=step)
+    # patcher_lab = Random_patcher(lab, batch_size=4, step=step, image=False)
+    # images = patcher_img.patch_image()
+    # masks = patcher_lab.patch_image()
+    patcher_img = Random_patcher(img, lab, batch_size=4, input_shape=(512, 512, 1), step=step)
+    # patcher_lab = Random_patcher(lab, batch_size= self.batch_size, step=self.step, image = False)
+    images, masks = patcher_img.patch_image()
 # images = Batch_loader.BatchLoad(test, batch_size = 1, dim = dims, step=step)
 print(images.shape)
 preds_test = model.predict(images, verbose=1)
 #pred_imgs = np.empty((i, dims, dims, 1), dtype=int)
-preds_test = (preds_test > 0.12).astype(np.uint8)
+preds_test = (preds_test > 0.4).astype(np.uint8)
 for i in range(0, len(preds_test)):
     plt.imshow(images[i])
+    plt.show()
+    plt.imshow(masks[i])
     plt.show()
     cv2.imwrite("inference/predictions/images/Image[" + str(i) + "].tif", images[i])
 

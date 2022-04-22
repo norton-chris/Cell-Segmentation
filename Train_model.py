@@ -31,23 +31,26 @@ np.random.seed = seed
 # X_train, X_test, y_train, y_test = train_test_split(
 #  train, test, test_size=0.33, random_state=42)
 
-count = 0
-for path in os.listdir(train):
-    if not os.path.isfile(train + path):
-        continue
-    if not (train + "Images/" + path == train + "Label"):
-        print("not same path")
-        print("bad image:", path)
-        count += 1
-print("number of bad image:", count)
+# count = 0
+# i = 0
+# for path in os.listdir(train + "Images/"):
+#     if not os.path.isfile(train + "Images/"):
+#         continue
+#     if not (train + "Images/" + path == train + "Label"):
+#         print("not same path")
+#         print("bad image:", path)
+#         count += 1
+#     i+=1
+# print("number of images:", i)
+# print("number of bad image:", count)
 
 dims = (512, 512, 1)
 step = 512
 
-unet = Models.UNET(n_filter=8,
-                            input_dim=dims,
-                            learning_rate=0.0001,
-                            num_classes=1)
+unet = Models.UNET(n_filter=16,
+                    input_dim=dims,
+                    learning_rate=0.0001,
+                    num_classes=1)
 model = unet.create_model()
 print("model summary:", model.summary())
 
@@ -55,16 +58,16 @@ print("model summary:", model.summary())
 tf.config.experimental_run_functions_eagerly(True)
 
 earlystopper = EarlyStopping(patience=15, verbose=1)
-checkpointer = ModelCheckpoint('h5_files/train_subset_UNet512JPG10E' + datetime.now().strftime("-%Y%m%d-%H.%M") + '.h5',
+checkpointer = ModelCheckpoint('h5_files/train_UNet512TIF50E' + datetime.now().strftime("-%Y%m%d-%H.%M") + '.h5',
                                verbose=0, save_best_only=False)
 
 log_dir = "logs/fit/UNet_" + datetime.now().strftime("%Y%m%d-%H%M%S")
 tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
-training_generator = Batch_loader.BatchLoad(train, batch_size = 4, dim=dims, step=step)
-validation_generator = Batch_loader.BatchLoad(train, batch_size = 4, dim=dims, step=step)
+training_generator = Batch_loader.BatchLoad(train, batch_size = 8, dim=dims, step=step)
+validation_generator = Batch_loader.BatchLoad(train, batch_size = 8, dim=dims, step=step)
 results = model.fit(training_generator, validation_data=validation_generator,
-                    epochs=10,
-                    callbacks=[earlystopper, checkpointer, tensorboard_callback]) #  TqdmCallback(verbose=2)
+                    epochs=50,
+                    callbacks=[earlystopper, checkpointer,tensorboard_callback]) #  TqdmCallback(verbose=2)
 
 print("Evaluate")
 result = model.evaluate(training_generator)

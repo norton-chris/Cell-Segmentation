@@ -34,7 +34,7 @@ class BatchLoad(keras.utils.all_utils.Sequence):
     def __data_generation(self, batch_paths):
         # Initialization
         images = np.zeros((self.batch_size, *self.dim), dtype=int)  # define the numpy array for the batch
-        masks = np.zeros((self.batch_size, self.dim[0], self.dim[1], self.num_classes), dtype=bool)
+        masks = np.zeros((self.batch_size, self.dim[0], self.dim[1]), dtype=bool)
         i = 0
         num_of_images = 0
         image_path = self.paths + "Images/"
@@ -49,24 +49,26 @@ class BatchLoad(keras.utils.all_utils.Sequence):
 
             # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
             # lab = cv2.cvtColor(lab, cv2.COLOR_BGR2GRAY)
-            try:
-                #print("try img shape:", img.shape)
-                #print("try lab shape:", lab.shape)
-                img = np.expand_dims(img, axis=2)
-                lab = np.expand_dims(lab, axis=2)
-            except Exception as e:
-                print(e)
-                #print("img shape:", img.shape)
-                #print("lab shape:", lab.shape)
-                continue
+            # try:
+            #     #print("try img shape:", img.shape)
+            #     #print("try lab shape:", lab.shape)
+            # img = np.expand_dims(img, axis=2)
+            # lab = np.expand_dims(lab, axis=2)
+            # except Exception as e:
+            #     print(e)
+            #     #print("img shape:", img.shape)
+            #     #print("lab shape:", lab.shape)
+            #     continue
 
             # plt.imshow(img)
             # plt.show()
+            # plt.imshow(lab)
+            # plt.show()
 
-            patcher_img = Random_patcher(img, batch_size= self.batch_size, step=self.step)
-            patcher_lab = Random_patcher(lab, batch_size= self.batch_size, step=self.step, image = False)
-            images = patcher_img.patch_image()
-            masks = patcher_lab.patch_image()
+            patcher_img = Random_patcher(img, lab, batch_size= self.batch_size, input_shape = (512,512,1), step=self.step)
+            #patcher_lab = Random_patcher(lab, batch_size= self.batch_size, step=self.step, image = False)
+            images, masks = patcher_img.patch_image()
+            #masks = patcher_lab.patch_image()
 
             # k = 0
             # # plt.imshow(patcher_img[0])
@@ -91,8 +93,6 @@ class BatchLoad(keras.utils.all_utils.Sequence):
             #     print("image array shape:", images.shape)
             #     print("all pixels 0")
             i += 1
-
-
 
         return images, masks
 
