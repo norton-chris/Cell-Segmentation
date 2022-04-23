@@ -42,7 +42,8 @@ class Random_patcher:
             cropped1 = self.lab[rand_int:rand_int+self.step,rand_int:rand_int+self.step]
             cropped1 = np.array(cropped1, dtype=bool)
             cropped = np.expand_dims(cropped, axis=2)
-            cropped1 = np.expand_dims(cropped1, axis=2)
+            # cropped1 = np.expand_dims(cropped1, axis=2)
+            cropped1 = cropped1.reshape(*self.input_shape)
             images[i] = cropped
             masks[i] = cropped1
             i += 1

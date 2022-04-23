@@ -27,9 +27,12 @@ class BatchLoad(keras.utils.all_utils.Sequence):
         self.num_classes = num_classes
         self.i = 0
         self.step = step
+        self.paths_temp = os.listdir(self.paths + "Images/")
+
 
     def __len__(self):
-        return int(np.floor(len(self.paths) / self.batch_size))
+
+        return int(np.floor(len(self.paths_temp) / (self.batch_size)))
 
     def __data_generation(self, batch_paths):
         # Initialization
@@ -65,7 +68,7 @@ class BatchLoad(keras.utils.all_utils.Sequence):
             # plt.imshow(lab)
             # plt.show()
 
-            patcher_img = Random_patcher(img, lab, batch_size= self.batch_size, input_shape = (512,512,1), step=self.step)
+            patcher_img = Random_patcher(img, lab, batch_size= 1, input_shape = self.dim, step=self.step)
             #patcher_lab = Random_patcher(lab, batch_size= self.batch_size, step=self.step, image = False)
             images, masks = patcher_img.patch_image()
             #masks = patcher_lab.patch_image()
@@ -92,15 +95,14 @@ class BatchLoad(keras.utils.all_utils.Sequence):
             # if images[i].max() == 0:
             #     print("image array shape:", images.shape)
             #     print("all pixels 0")
-            i += 1
+            #i += 1
 
         return images, masks
 
     def __getitem__(self, index):
         # print(self.paths)
-        paths_temp = os.listdir(self.paths + "Images/")
 
         # can augment here
-        images, masks = self.__data_generation(paths_temp)
+        images, masks = self.__data_generation(self.paths_temp)
 
         return images, masks

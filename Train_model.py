@@ -44,8 +44,8 @@ np.random.seed = seed
 # print("number of images:", i)
 # print("number of bad image:", count)
 
-dims = (512, 512, 1)
-step = 512
+dims = (128, 128, 1)
+step = 128
 
 unet = Models.UNET(n_filter=16,
                     input_dim=dims,
@@ -66,7 +66,7 @@ tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
 training_generator = Batch_loader.BatchLoad(train, batch_size = 8, dim=dims, step=step)
 validation_generator = Batch_loader.BatchLoad(train, batch_size = 8, dim=dims, step=step)
 results = model.fit(training_generator, validation_data=validation_generator,
-                    epochs=50,
+                    epochs=50, # multiprocessing =True, workers = 8,
                     callbacks=[earlystopper, checkpointer,tensorboard_callback]) #  TqdmCallback(verbose=2)
 
 print("Evaluate")
