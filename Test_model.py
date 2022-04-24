@@ -130,13 +130,13 @@ if gpus:
     # Memory growth must be set before GPUs have been initialized
     print(e)
 #root = "E:/Han Project/TrainingDataset/TrainingDataset/output/train/"
-root = "E:/Han Project/TrainingDataset/clean_dataset/TrainingDataset/test/"
+root = "E:/Han Project/TrainingDataset/clean_dataset/TrainingDataset/output/test/"
 test = root + "Images/"
 #test_mask = "E:/Han Project/TrainingDataset/TrainingDataset/output/train/Labels/"
 dims = 512
 step = 512
 # Predict on patches
-model = load_model('h5_files/train_UNet512TIF50E-20220422-01.25.h5',
+model = load_model('h5_files/train_UNet512TIF50E-20220423-04.21.h5',
                   custom_objects = { 'dice_plus_bce_loss': dice_plus_bce_loss,
                                     'dice_scoring': dice_scoring})
 

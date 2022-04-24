@@ -196,7 +196,7 @@ class UNET(object):
 
         model = Model(inputs=self.input, outputs=output)
         opt = Adam(lr=self.lr)
-        opt = tf.keras.mixed_precision.LossScaleOptimizer(opt)
+        #opt = tf.keras.mixed_precision.LossScaleOptimizer(opt)
         model.compile(optimizer=opt, loss=Scoring.dice_plus_bce_loss, metrics=Scoring.dice_scoring)
         # model.summary()
         return model

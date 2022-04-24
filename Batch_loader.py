@@ -31,7 +31,6 @@ class BatchLoad(keras.utils.all_utils.Sequence):
 
 
     def __len__(self):
-
         return int(np.floor(len(self.paths_temp) / (self.batch_size)))
 
     def __data_generation(self, batch_paths):

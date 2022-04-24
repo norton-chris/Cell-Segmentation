@@ -16,8 +16,8 @@ IMG_WIDTH = 512
 IMG_HEIGHT = 512
 IMG_CHANNELS = 1
 
-train = "E:/Han Project/TrainingDataset/clean_dataset/TrainingDataset/" # change this to your local training dataset
-val = "E:/Han Project/TrainingDataset/clean_dataset/TrainingDataset/" # change this to your local validation set
+train = "E:/Han Project/TrainingDataset/clean_dataset/TrainingDataset/output/train/" # change this to your local training dataset
+val = "E:/Han Project/TrainingDataset/clean_dataset/TrainingDataset/output/val/" # change this to your local validation set
 test = "E:/Han Project/TrainingDataset/TrainingDataset/output/test/" # change this to your local testing set
 
 TEST_PATH = 'test_images/'
@@ -55,7 +55,7 @@ model = unet.create_model()
 print("model summary:", model.summary())
 
 # Fit model
-tf.config.experimental_run_functions_eagerly(True)
+#tf.config.experimental_run_functions_eagerly(True)
 
 earlystopper = EarlyStopping(patience=15, verbose=1)
 checkpointer = ModelCheckpoint('h5_files/train_UNet512TIF50E' + datetime.now().strftime("-%Y%m%d-%H.%M") + '.h5',
