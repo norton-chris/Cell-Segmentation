@@ -43,8 +43,8 @@ class BatchLoad(keras.utils.all_utils.Sequence):
         label_path = self.paths + "Labels/"
         for path in batch_paths:
             #print("loop:", image_path + path)
-            img = cv2.imread(image_path + path, -1)
-            lab = cv2.imread(label_path + path, -1)
+            img = cv2.imread(image_path + path, cv2.IMREAD_GRAYSCALE)
+            lab = cv2.imread(label_path + path, cv2.IMREAD_GRAYSCALE)
 
             #  img = cv2.GaussianBlur(img, (5, 5), cv2.BORDER_DEFAULT)
             # lab = cv2.GaussianBlur(lab, (5, 5), cv2.BORDER_DEFAULT)

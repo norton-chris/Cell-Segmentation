@@ -10,15 +10,16 @@ import Models
 from tqdm.keras import TqdmCallback
 import Batch_loader
 
+os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 print(tf.config.list_physical_devices('GPU'))
 
 IMG_WIDTH = 512
 IMG_HEIGHT = 512
 IMG_CHANNELS = 1
 
-train = "E:/Han Project/TrainingDataset/clean_dataset/TrainingDataset/output/train/" # change this to your local training dataset
-val = "E:/Han Project/TrainingDataset/clean_dataset/TrainingDataset/output/val/" # change this to your local validation set
-test = "E:/Han Project/TrainingDataset/TrainingDataset/output/test/" # change this to your local testing set
+train = "TrainingDataset/" # change this to your local training dataset
+val = "TrainingDataset/output/val/" # change this to your local validation set
+test = "TrainingDataset/TrainingDataset/output/test/" # change this to your local testing set
 
 TEST_PATH = 'test_images/'
 
@@ -47,7 +48,7 @@ np.random.seed = seed
 dims = (128, 128, 1)
 step = 128
 
-unet = Models.UNET(n_filter=16,
+unet = Models.UNET(n_filter=32,
                     input_dim=dims,
                     learning_rate=0.0001,
                     num_classes=1)
@@ -66,7 +67,7 @@ tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
 training_generator = Batch_loader.BatchLoad(train, batch_size = 8, dim=dims, step=step)
 validation_generator = Batch_loader.BatchLoad(train, batch_size = 8, dim=dims, step=step)
 results = model.fit(training_generator, validation_data=validation_generator,
-                    epochs=50, # multiprocessing =True, workers = 8,
+                    epochs=50,  use_multiprocessing =True, workers = 8,
                     callbacks=[earlystopper, checkpointer,tensorboard_callback]) #  TqdmCallback(verbose=2)
 
 print("Evaluate")
