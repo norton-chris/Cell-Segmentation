@@ -130,13 +130,13 @@ if gpus:
     # Memory growth must be set before GPUs have been initialized
     print(e)
 #root = "E:/Han Project/TrainingDataset/TrainingDataset/output/train/"
-root = "E:/Han Project/TrainingDataset/clean_dataset/TrainingDataset/output/test/"
+root = "TrainingDataset/output/test/"
 test = root + "Images/"
 #test_mask = "E:/Han Project/TrainingDataset/TrainingDataset/output/train/Labels/"
-dims = 512
-step = 512
+dims = 128
+step = 128
 # Predict on patches
-model = load_model('h5_files/train_UNet512TIF50E-20220423-04.21.h5',
+model = load_model('h5_files/train_UNet512TIF50E-20220504-12.44.h5',
                   custom_objects = { 'dice_plus_bce_loss': dice_plus_bce_loss,
                                     'dice_scoring': dice_scoring})
 
@@ -170,7 +170,7 @@ for path in os.listdir(test):
     # patcher_lab = Random_patcher(lab, batch_size=4, step=step, image=False)
     # images = patcher_img.patch_image()
     # masks = patcher_lab.patch_image()
-    patcher_img = Random_patcher(img, lab, batch_size=4, input_shape=(512, 512, 1), step=step)
+    patcher_img = Random_patcher(img, lab, batch_size=4, input_shape=(dims, dims, 1), step=step)
     # patcher_lab = Random_patcher(lab, batch_size= self.batch_size, step=self.step, image = False)
     images, masks = patcher_img.patch_image()
 # images = Batch_loader.BatchLoad(test, batch_size = 1, dim = dims, step=step)
