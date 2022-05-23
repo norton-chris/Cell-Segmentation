@@ -17,8 +17,9 @@ IMG_WIDTH = 512
 IMG_HEIGHT = 512
 IMG_CHANNELS = 1
 
-train = "TrainingDataset/" # change this to your local training dataset
-val = "TrainingDataset/output/val/" # change this to your local validation set
+train = "TrainingDataset/correct_labels_subset/" # change this to your local training dataset
+#val = "TrainingDataset/output/val/" # change this to your local validation set
+val = "TrainingDataset/correct_labels_subset/"
 test = "TrainingDataset/TrainingDataset/output/test/" # change this to your local testing set
 
 TEST_PATH = 'test_images/'
@@ -59,17 +60,17 @@ print("model summary:", model.summary())
 #tf.config.experimental_run_functions_eagerly(True)
 
 earlystopper = EarlyStopping(patience=15, verbose=1)
-checkpointer = ModelCheckpoint('h5_files/train_UNet512TIF50E' + datetime.now().strftime("-%Y%m%d-%H.%M") + '.h5',
+checkpointer = ModelCheckpoint('h5_files/train_UNet512TIF100E' + datetime.now().strftime("-%Y%m%d-%H.%M") + '.h5',
                                verbose=0, save_best_only=False)
 
 log_dir = "logs/fit/UNet_" + datetime.now().strftime("%Y%m%d-%H%M%S")
 tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
 input_shape = (512, 512, 1)
-training_generator = Batch_loader.BatchLoad(train, batch_size = 8, dim=input_shape, step=step)
+training_generator = Batch_loader.BatchLoad(train, batch_size = 8, dim=input_shape, step=step, patching=True)
 validation_generator = Batch_loader.BatchLoad(train, batch_size = 8, dim=input_shape, step=step)
 results = model.fit(training_generator, validation_data=validation_generator,
-                    epochs=50,  use_multiprocessing =True, workers = 8,
-                    callbacks=[earlystopper, checkpointer,tensorboard_callback]) #  TqdmCallback(verbose=2)
+                    epochs=150,  use_multiprocessing=True, workers=8,
+                    callbacks=[earlystopper, checkpointer, tensorboard_callback]) #  TqdmCallback(verbose=2)
 
 print("Evaluate")
 result = model.evaluate(training_generator)

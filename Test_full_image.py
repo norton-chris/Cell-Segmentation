@@ -12,11 +12,16 @@ import Models
 from tqdm.keras import TqdmCallback
 import matplotlib.pyplot as plt
 #from Batch_load_test import BatchLoadTest
+
 from Patcher import Patcher
 import Batch_loader
 from Random_patcher import Random_patcher
+from Unpatcher import Unpatcher
+
+
 from PIL import Image
 from patchify import patchify, unpatchify
+from typing import Tuple, Union, cast
 
 
 def dice_plus_bce_loss(targets, inputs, smooth=1e-6):
@@ -43,81 +48,6 @@ def dice_scoring(targets, inputs, smooth=1e-6):
     dice = (2 * intersection) / (K.sum(targets) + K.sum(inputs) + smooth)
     return dice
 
-def patch_togetherv3(img, full_image, batch_size=1, step=512):
-    max_x_pixel = full_image.shape
-    max_y_pixel = full_image.shape
-    # batch_size = int((float(max_x_pixel[0]) / float(self.step)) * (float(max_y_pixel[0]) / float(self.step)))
-    curx = 0
-    cury = 0
-
-    i = 0
-    # if self.image:
-    images = np.empty((batch_size, step, step, 1))
-    pred_imgs = np.empty((step, step, 1))
-    # else:
-    #     images = np.empty((batch_size, step, step, 1), dtype=bool)
-    print("max x:", max_x_pixel[1])
-    while cury < max_y_pixel[1]:
-        x_cur = curx
-        while curx < max_x_pixel[1]:
-
-            # if self.image:
-            cropped = img[curx:curx + step, cury:cury + step]
-
-            # else:
-            #     cropped = self.img[curx:curx + step, cury:cury + step]
-
-            curx = curx + step
-
-            try:
-                images[i] = cropped.reshape(step, step, 1)
-                i += 1
-            except:
-                pass
-        curx = x_cur
-        cury = cury + step
-
-def patch_togetherv2(prediction, image_name):
-    img = cv2.imread(image_name)
-    print(img.shape)
-    print(prediction.shape)
-    reconstructed_image = unpatchify(prediction, img.shape)
-    plt.imshow(reconstructed_image)
-    plt.show()
-    return reconstructed_image
-
-
-def patch_together(prediction, org_shape):
-    full_image = np.empty((1, (*org_shape)), dtype=int)
-    j = 0
-    k = 0
-    print(prediction.shape)
-    for x in range(0, dims):
-        k -= dims
-        for y in range(0, dims):
-            print(prediction)
-            #full_image[j][k] = prediction
-            k += 1
-        j += 1
-    print("writing full image")
-    plt.imshow(full_image)
-    plt.show()
-    cv2.imwrite("patched_full/patched_image" + datetime.now().strftime("-%Y%m%d-%H.%M") + ".jpg")
-
-def visualEvaluation(label, prediction):
-    eval_image = np.empty((len(os.listdir(test)), dims, dims, 1), dtype=int)
-    for big_image in range(0,len(os.listdir(test))):
-        j = 0
-        k = 0
-        for i in range(0, len(prediction)):
-            for x in range(0,len(prediction[i])):
-                for y in range(0, len(prediction[i])):
-                    if(label[x][y] != prediction[x][y]):
-                        eval_image[j][k] == (0,0,1)
-                    k += 1
-                j += 1
-
-
 gpus = tf.config.experimental.list_physical_devices('GPU')
 if gpus:
   try:
@@ -136,22 +66,26 @@ test = root + "Images/"
 dims = 512
 step = 512
 # Predict on patches
-model = load_model('h5_files/train_UNet512TIF50E-20220517-23.04.h5', # train_UNet512TIF50E-20220519-23.41.h5
+model = load_model('h5_files/train_UNet512TIF50E-20220517-23.04.h5',
                   custom_objects = { 'dice_plus_bce_loss': dice_plus_bce_loss,
                                     'dice_scoring': dice_scoring})
 
 # load test patches
-images = np.empty((len(os.listdir(test)), dims, dims, 1), dtype=int)  # define the numpy array for the batch
-masks = np.empty((len(os.listdir(test)), dims, dims, 1), dtype=bool)
+images = np.zeros((len(os.listdir(test)), dims, dims, 1), dtype=int)  # define the numpy array for the batch
+masks = np.zeros((len(os.listdir(test)), dims, dims, 1), dtype=bool)
+resize =  np.zeros((1, dims, dims, 1), dtype=int)
 i = 0
 num_of_images = 0
 image_name = ""
 max_x_pixel = 512
 max_y_pixel = 512
+print("total image shape:", images.shape)
 for path in os.listdir(test):
     print("loop", test + path)
     img = cv2.imread(test + path, -1)
     lab = cv2.imread(root + "Labels/" + path, -1)
+    # img = Image.open(test + path)
+    # lab = Image.open(root + "Labels/" + path)
 
     # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     # lab = cv2.cvtColor(lab, cv2.COLOR_BGR2GRAY)
@@ -170,55 +104,96 @@ for path in os.listdir(test):
     # patcher_lab = Random_patcher(lab, batch_size=4, step=step, image=False)
     # images = patcher_img.patch_image()
     # masks = patcher_lab.patch_image()
-    patcher_img = Random_patcher(img, lab, batch_size=4, input_shape=(dims, dims, 1), step=step)
+    batch_size = int(img.shape[0]/step) + int(img.shape[1]/step)
+    patcher_img = Patcher(img, lab, batch_size=batch_size, input_shape=(dims, dims, 1), step=step)
     # patcher_lab = Random_patcher(lab, batch_size= self.batch_size, step=self.step, image = False)
-    images, masks = patcher_img.patch_image()
+    images, masks, row, col = patcher_img.patch_image()
     # images = Batch_loader.BatchLoad(test, batch_size = 1, dim = dims, step=step)
-    print(images.shape)
+    print("1 image shape:", images.shape)
     preds_test = model.predict(images, verbose=1)
+
+    resized = cv2.resize(img, (dims, dims))
+    resize = resized.reshape(1, step, step, 1)
+    preds_full_image = model.predict(resize)
     #pred_imgs = np.empty((i, dims, dims, 1), dtype=int)
     preds_test = (preds_test > 0.4).astype(np.uint8)
+    preds_full_image = (preds_full_image > 0.4).astype(np.uint8)
     for i in range(0, len(preds_test)):
         # create figure
         fig = plt.figure(figsize=(10, 7))
 
-        # Adds a subplot at the 1st position
-        fig.add_subplot(1, 3, 1)
+        for j in range(1, batch_size+1):
+            # Adds a subplot at the 1st position
+            fig.add_subplot(int(row/step), int(col/step), j)
+
+            # showing image
+            plt.imshow(preds_test[j-1])
+            plt.axis('off')
+            # plt.title("Image")
+
+            # # Adds a subplot at the 2nd position
+            # fig.add_subplot(row, col,r)
+            # r += 1
+            #
+            # # showing image
+            # plt.imshow(masks[i])
+            # plt.axis('off')
+            # plt.title("Label")
+            #
+            # # Adds a subplot at the 3rd position
+            # fig.add_subplot(1, 3, r)
+            # r += 1
+            #
+            # # showing image
+            # plt.imshow(preds_test[i])
+            # plt.axis('off')
+            # plt.title("Prediction")
+            # plt.show()
+            # plt.imshow(images[i])
+            # plt.show()
+            # plt.imshow(masks[i])
+            # plt.show()
+            #cv2.imwrite("inference/predictions/images/Image[" + str(i) + "].tif", images[i])
+
+            # plt.imshow(preds_test[i])
+            #plt.show()
+            #pred_imgs[i] = preds_test[i]
+            #cv2.imwrite("inference/predictions/predict/Prediction[" + str(i) + "].tif", preds_test[i])
+        fig.add_subplot(int(row / step), int(col / step), j+1)
 
         # showing image
-        plt.imshow(images[i])
+        plt.imshow(img)
         plt.axis('off')
-        plt.title("Image")
+        plt.title("image")
 
-        # Adds a subplot at the 2nd position
-        fig.add_subplot(1, 3, 2)
+        fig.add_subplot(int(row / step), int(col / step), j + 2)
 
         # showing image
-        plt.imshow(masks[i])
+        plt.imshow(lab)
         plt.axis('off')
-        plt.title("Label")
+        plt.title("label")
 
-        # Adds a subplot at the 3rd position
-        fig.add_subplot(1, 3, 3)
+        # TODO implement full size prediction
+        # patches = patchify(preds_test, (len(preds_test), int(preds_test.shape[1]/step), int(preds_test.shape[2]/step), 1), step=1)  # patch shape [2,2,3]
+        #print(patches.shape)  # (511, 511, 1, 2, 2, 3). Total patches created: 511x511x1
+        #preds_test = np.array(preds_test, dtype=np.uint8)
+        #full_pred_image = unpatchify(patches, (batch_size,img.shape[0], img.shape[1],1))
+        #unpatcher = Unpatcher(img, preds_test, img_name=test+path)
+        #full_pred_image = unpatcher.unpatch_image()
 
-        # showing image
-        plt.imshow(preds_test[i])
-        plt.axis('off')
-        plt.title("Prediction")
+    #
+        #fig.add_subplot(int(row / step), int(col / step), j + 3)
+    #
+    #     # showing image
+    #     plt.imshow(full_pred_image)
+    #     plt.axis('off')
+    #     plt.title("full size prediction")
+    # # plt.imshow(full_pred_image)
+        #plt.imshow(preds_full_image[0])
+        #plt.axis('off')
+        #plt.title("label")
         plt.show()
-        # plt.imshow(images[i])
-        # plt.show()
-        # plt.imshow(masks[i])
-        # plt.show()
-        cv2.imwrite("inference/predictions/images/Image[" + str(i) + "].tif", images[i])
-
-        # plt.imshow(preds_test[i])
-        # plt.show()
-        #pred_imgs[i] = preds_test[i]
-        cv2.imwrite("inference/predictions/predict/Prediction[" + str(i) + "].tif", preds_test[i])
-
-    # plt.imshow(full_pred_image)
-    # plt.show()
+        break
 
 #full_pred_image = patch_togetherv3(pred_imgs, images, batch_size=1, step=step)
 # batch_size = int((float(max_x_pixel[0]) / float(self.step)) * (float(max_y_pixel[0]) / float(self.step)))
@@ -280,7 +255,3 @@ print("patching images together")
 #patch_togetherv2(preds_test, image_name)
 plt.imshow(full_pred_image)
 plt.show()
-
-
-
-

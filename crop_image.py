@@ -2,6 +2,8 @@ import numpy as np
 import cv2
 import os
 from PIL import Image
+import time
+import psutil
 
 PATH = "TrainingDataset/output/Labels/"
 TRAIN_PATH = "TrainingDataset/output/Images/"
@@ -21,8 +23,9 @@ for i in os.listdir(PATH):
 
         for y in range(0,img.size[1]):
             for x in range(0, img.size[0]):
-                white = pixel[y, x] == [255, 255, 255]
+                white = pixel[y, x] == 1
                 if white:
+                    #pixel[y,x] = 255
                     if xmin > x:
                         xmin = x
                     if ymin > y:
@@ -44,11 +47,18 @@ for i in os.listdir(PATH):
         #img = cv2.rectangle(img,(xmin,ymin),(xmax,ymax),(0,255,0),2)
 
         #img = img[ymin:ymax, xmin:xmax]
-        img = img.crop((xmax, ymax, xmin, ymin))
+        img = img.crop((xmin, ymin, xmax, ymax))
+        # print(xmax, ymax, xmin, ymin)
+        # print(img.size)
+        # img.show()
+        # time.sleep(5)
+        # for proc in psutil.process_iter():
+        #     if proc.name() == "display":
+        #         proc.kill()
         img = img.save("TrainingDataset/Cropped_labels/" + i)
         train_img = Image.fromarray(np.array(Image.open(TRAIN_PATH + i)).astype("uint16"))
         #train_img = train_img[ymin:ymax, xmin:xmax]
-        train_img = train_img.crop((xmax, ymax, xmin, ymin))
+        train_img = train_img.crop((xmin, ymin, xmax, ymax))
         train_img = train_img.save("TrainingDataset/Cropped_images/" + i)
     except Exception as e:
         print(e)

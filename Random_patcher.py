@@ -29,9 +29,10 @@ class Random_patcher:
         #max_y_pixel = self.img.shape
 
         i = 0
+        black_image = False
         images = np.zeros((self.batch_size, self.step, self.step, self.num_classes))
-        masks = np.zeros((self.batch_size, self.step, self.step, self.num_classes), dtype=bool)
-        while i < self.batch_size:
+        masks = np.zeros((self.batch_size, self.step, self.step), dtype=bool)
+        while i < self.batch_size or black_image:
             # Get random integer from 0 to the image
             if self.img.shape[0] > self.img.shape[1]:
                 max_x_pixel = self.img.shape[1]
@@ -50,13 +51,30 @@ class Random_patcher:
 
             img_crop = self.img[rand_int:rand_int+self.step,rand_int:rand_int+self.step]
             lab_crop = self.lab[rand_int:rand_int+self.step,rand_int:rand_int+self.step]
-            lab_crop = np.array(lab_crop, dtype=bool)
+
+            if lab_crop.max() == 0:
+                black_image = True
+                continue
+            else:
+                black_image = False
+            # print(rand_int)
+            # lab_crop = np.array(lab_crop, dtype=bool)
+            #
+            # fig = plt.figure(figsize=(10, 7))
+            #
+            # fig.add_subplot(1, 2, 1)
+            # plt.imshow(img_crop)
+            #
+            # fig.add_subplot(1, 2, 2)
+            # plt.imshow(lab_crop)
+            #
+            # plt.show()
 
             augment = Augmentor(img_crop, lab_crop)
-            #img_crop, lab_crop = augment.rotate()
+            img_crop, lab_crop = augment.rotate()
 
             images[i] = img_crop.reshape(*self.input_shape)
-            masks[i] = lab_crop.reshape(*self.input_shape)
+            masks[i] = lab_crop.reshape((self.input_shape[0], self.input_shape[1]))
             i += 1
 
         return images, masks

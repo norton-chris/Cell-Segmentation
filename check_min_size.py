@@ -1,8 +1,8 @@
 import cv2
 import os
 
-train  = "TrainingDataset/Cropped_images/"
-labels = "TrainingDataset/Cropped_labels/"
+train  = "TrainingDataset/Images/"
+labels = "TrainingDataset/Labels/"
 
 too_small = 0
 for i in os.listdir(train):
