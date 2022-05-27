@@ -22,6 +22,13 @@ class Patcher:
         return self.patch_image()
 
     def patch_image(self):
+        def normalize_image(input_block):
+            block = input_block.copy()
+            vol_max, vol_min = block.max(), block.min()
+            if not vol_max == vol_min:  # run a check. otherwise error when divide by 0
+                for i in range(block.shape[-1]):
+                    block[:, :, i] = (block[:, :, i] - vol_min) / (vol_max - vol_min)
+            return block
         max_x_pixel = self.img.shape[0]
         max_y_pixel = self.img.shape[1]
         # batch_size = int((float(max_x_pixel[0]) / float(self.step)) * (float(max_y_pixel[0]) / float(self.step)))
@@ -29,7 +36,7 @@ class Patcher:
         cury = 0
 
         i = 0
-        images = np.zeros((self.batch_size, self.step, self.step, self.num_classes))
+        images = np.zeros((self.batch_size, self.step, self.step, self.num_classes), dtype="float32")
         masks = np.zeros((self.batch_size, self.step, self.step, self.num_classes), dtype=bool)
         while cury < max_y_pixel:
             x_cur = curx
@@ -44,7 +51,7 @@ class Patcher:
                 curx = curx + self.step
 
                 try:
-                    images[i] = cropped.reshape(self.step, self.step, self.num_classes)
+                    images[i] = normalize_image(cropped.reshape(self.step, self.step, self.num_classes))
                     masks[i] = cropped_lab.reshape(self.step, self.step, self.num_classes)
                     i += 1
                 except:

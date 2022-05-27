@@ -42,7 +42,6 @@ class UNetPlusPlus(object):
 
     def create_model(self):
         # ######### Frame 1 ######### #
-
         # X00 (Top layer, no up-sample)
         conv_x00 = convolution_relu_test(self.n_filter, 3)(self.input)
         skip_x00 = convolution_relu_test(self.n_filter, 3)(conv_x00)
@@ -135,7 +134,7 @@ class UNetPlusPlus(object):
 
         # X04
         merge_x04 = concatenate([skip_x00, skip_x01, skip_x02, skip_x03, up_x13], axis=3)
-        conv_x04 = convolution_relu_test(self.n_filter, 3, use_batchnorm=False, use_dropout=False)(merge_x04)
+        conv_x04 = convolution_relu_test(self.n_filter, 3, use_batchnorm=True, use_dropout=False)(merge_x04)
         out = convolution_relu_test(2, 3)(conv_x04)
 
         # ######### output ######### #

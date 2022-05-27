@@ -44,17 +44,19 @@ class Unpatcher:
             masks = np.zeros((img.size[0], img.size[1], img.size[2]), dtype=bool)
             xstep = self.patches.shape[1]
             ystep = self.patches.shape[2]
+
+        new_img_array = np.zeros(shape=(max_x_pixel, max_y_pixel, 1))
         while cury < max_y_pixel:
             #x_cur = curx
             #x_offset = 0
 
             #curx = curx + xstep
-
             while curx < max_x_pixel:
                 # img = Image.open(self.patches)
                 # new_im.paste(img, (x_offset, 0))
                 # x_offset += img.size[curx, 0]
-                img.paste(self.patches[i], (curx, cury, curx + xstep, cury + ystep))
+                #img.paste(self.patches[i], (curx, cury, curx + xstep, cury + ystep))
+                new_img_array[curx:curx + xstep, cury:cury + ystep] = self.patches[i]
                 #cropped_lab = np.array(cropped_lab, dtype=bool)
 
                 curx = curx + xstep
@@ -67,5 +69,5 @@ class Unpatcher:
             curx = 0
             cury = cury + ystep
 
-        return masks
+        return new_img_array
 

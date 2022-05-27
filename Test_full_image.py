@@ -48,6 +48,14 @@ def dice_scoring(targets, inputs, smooth=1e-6):
     dice = (2 * intersection) / (K.sum(targets) + K.sum(inputs) + smooth)
     return dice
 
+def normalize_image(input_block):
+    block = input_block.copy()
+    vol_max, vol_min = block.max(), block.min()
+    if not vol_max == vol_min:  # run a check. otherwise error when divide by 0
+        for i in range(block.shape[-1]):
+            block[:, :, i] = (block[:, :, i] - vol_min) / (vol_max - vol_min)
+    return block
+
 gpus = tf.config.experimental.list_physical_devices('GPU')
 if gpus:
   try:
@@ -60,13 +68,13 @@ if gpus:
     # Memory growth must be set before GPUs have been initialized
     print(e)
 #root = "E:/Han Project/TrainingDataset/TrainingDataset/output/train/"
-root = "TrainingDataset/output/test/"
+root = "TrainingDataset/correct_labels_subset/output/test/"
 test = root + "Images/"
 #test_mask = "E:/Han Project/TrainingDataset/TrainingDataset/output/train/Labels/"
 dims = 512
 step = 512
 # Predict on patches
-model = load_model('h5_files/train_UNet512TIF50E-20220517-23.04.h5',
+model = load_model('h5_files/UNET++512TIF150E-20220525-15.22.h5',
                   custom_objects = { 'dice_plus_bce_loss': dice_plus_bce_loss,
                                     'dice_scoring': dice_scoring})
 
@@ -104,7 +112,7 @@ for path in os.listdir(test):
     # patcher_lab = Random_patcher(lab, batch_size=4, step=step, image=False)
     # images = patcher_img.patch_image()
     # masks = patcher_lab.patch_image()
-    batch_size = int(img.shape[0]/step) + int(img.shape[1]/step)
+    batch_size = int(img.shape[0]/step) * int(img.shape[1]/step)
     patcher_img = Patcher(img, lab, batch_size=batch_size, input_shape=(dims, dims, 1), step=step)
     # patcher_lab = Random_patcher(lab, batch_size= self.batch_size, step=self.step, image = False)
     images, masks, row, col = patcher_img.patch_image()
@@ -124,7 +132,7 @@ for path in os.listdir(test):
 
         for j in range(1, batch_size+1):
             # Adds a subplot at the 1st position
-            fig.add_subplot(int(row/step), int(col/step), j)
+            fig.add_subplot(int(row/step) + 1, int(col/step), j)
 
             # showing image
             plt.imshow(preds_test[j-1])
@@ -159,14 +167,14 @@ for path in os.listdir(test):
             #plt.show()
             #pred_imgs[i] = preds_test[i]
             #cv2.imwrite("inference/predictions/predict/Prediction[" + str(i) + "].tif", preds_test[i])
-        fig.add_subplot(int(row / step), int(col / step), j+1)
+        fig.add_subplot(int(row/step)+ 1, int(col/step), j+1)
 
         # showing image
         plt.imshow(img)
         plt.axis('off')
         plt.title("image")
 
-        fig.add_subplot(int(row / step), int(col / step), j + 2)
+        fig.add_subplot(int(row/step)+ 1, int(col/step), j + 2)
 
         # showing image
         plt.imshow(lab)
@@ -178,20 +186,20 @@ for path in os.listdir(test):
         #print(patches.shape)  # (511, 511, 1, 2, 2, 3). Total patches created: 511x511x1
         #preds_test = np.array(preds_test, dtype=np.uint8)
         #full_pred_image = unpatchify(patches, (batch_size,img.shape[0], img.shape[1],1))
-        #unpatcher = Unpatcher(img, preds_test, img_name=test+path)
-        #full_pred_image = unpatcher.unpatch_image()
+        unpatcher = Unpatcher(img, preds_test, img_name=test+path)
+        full_pred_image = unpatcher.unpatch_image()
 
     #
-        #fig.add_subplot(int(row / step), int(col / step), j + 3)
+        fig.add_subplot(int(row/step)+ 1, int(col/step), j + 3)
     #
     #     # showing image
     #     plt.imshow(full_pred_image)
     #     plt.axis('off')
     #     plt.title("full size prediction")
-    # # plt.imshow(full_pred_image)
-        #plt.imshow(preds_full_image[0])
-        #plt.axis('off')
-        #plt.title("label")
+        plt.imshow(full_pred_image)
+        #plt.imshow(preds_full_image)
+        plt.axis('off')
+        plt.title("label")
         plt.show()
         break
 

@@ -12,7 +12,8 @@ class Random_patcher:
                  input_shape = (512, 512, 1),
                  step = 512,
                  num_classes = 1,
-                 image = True):
+                 image = True,
+                 validation = False):
         self.img = img
         self.lab = lab
         self.batch_size = batch_size
@@ -20,17 +21,25 @@ class Random_patcher:
         self.step = step
         self.num_classes = num_classes
         self.image = image
+        self.validation = validation
 
     def __getitem__(self, item):
         return self.patch_image()
 
     def patch_image(self):
+        def normalize_image(input_block):
+            block = input_block.copy()
+            vol_max, vol_min = block.max(), block.min()
+            if not vol_max == vol_min:  # run a check. otherwise error when divide by 0
+                for i in range(block.shape[-1]):
+                    block[:, :, i] = (block[:, :, i] - vol_min) / (vol_max - vol_min)
+            return block
         max_x_pixel = 0
         #max_y_pixel = self.img.shape
 
         i = 0
         black_image = False
-        images = np.zeros((self.batch_size, self.step, self.step, self.num_classes))
+        images = np.zeros((self.batch_size, self.step, self.step, self.num_classes), dtype="float32")
         masks = np.zeros((self.batch_size, self.step, self.step), dtype=bool)
         while i < self.batch_size or black_image:
             # Get random integer from 0 to the image
@@ -46,9 +55,6 @@ class Random_patcher:
             else:
                 rand_int = 0
 
-
-
-
             img_crop = self.img[rand_int:rand_int+self.step,rand_int:rand_int+self.step]
             lab_crop = self.lab[rand_int:rand_int+self.step,rand_int:rand_int+self.step]
 
@@ -59,6 +65,7 @@ class Random_patcher:
                 black_image = False
             # print(rand_int)
             # lab_crop = np.array(lab_crop, dtype=bool)
+            #img_crop = np.array(img_crop, dtype="float32")
             #
             # fig = plt.figure(figsize=(10, 7))
             #
@@ -69,11 +76,11 @@ class Random_patcher:
             # plt.imshow(lab_crop)
             #
             # plt.show()
+            if self.validation:
+                augment = Augmentor(img_crop, lab_crop)
+                img_crop, lab_crop = augment.rotate()
 
-            augment = Augmentor(img_crop, lab_crop)
-            img_crop, lab_crop = augment.rotate()
-
-            images[i] = img_crop.reshape(*self.input_shape)
+            images[i] = normalize_image(img_crop.reshape(self.input_shape))
             masks[i] = lab_crop.reshape((self.input_shape[0], self.input_shape[1]))
             i += 1
 

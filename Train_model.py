@@ -17,9 +17,9 @@ IMG_WIDTH = 512
 IMG_HEIGHT = 512
 IMG_CHANNELS = 1
 
-train = "TrainingDataset/correct_labels_subset/" # change this to your local training dataset
+train = "TrainingDataset/correct_labels_subset/output/train/" # change this to your local training dataset
 #val = "TrainingDataset/output/val/" # change this to your local validation set
-val = "TrainingDataset/correct_labels_subset/"
+val = "TrainingDataset/correct_labels_subset/output/val/"
 test = "TrainingDataset/TrainingDataset/output/test/" # change this to your local testing set
 
 TEST_PATH = 'test_images/'
@@ -51,13 +51,14 @@ step = 512
 
 unet = Models.UNET(n_filter=32,
                     input_dim=dims,
-                    learning_rate=0.0001,
+                    learning_rate=0.0004,
                     num_classes=1)
 model = unet.create_model()
 print("model summary:", model.summary())
 
 # Fit model
 #tf.config.experimental_run_functions_eagerly(True)
+tf.config.run_functions_eagerly(True)
 
 earlystopper = EarlyStopping(patience=15, verbose=1)
 checkpointer = ModelCheckpoint('h5_files/train_UNet512TIF100E' + datetime.now().strftime("-%Y%m%d-%H.%M") + '.h5',
@@ -66,8 +67,8 @@ checkpointer = ModelCheckpoint('h5_files/train_UNet512TIF100E' + datetime.now().
 log_dir = "logs/fit/UNet_" + datetime.now().strftime("%Y%m%d-%H%M%S")
 tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
 input_shape = (512, 512, 1)
-training_generator = Batch_loader.BatchLoad(train, batch_size = 8, dim=input_shape, step=step, patching=True)
-validation_generator = Batch_loader.BatchLoad(train, batch_size = 8, dim=input_shape, step=step)
+training_generator = Batch_loader.BatchLoad(train, batch_size = 1, dim=input_shape, step=step, patching=False, validation=True)
+validation_generator = Batch_loader.BatchLoad(train, batch_size = 1, dim=input_shape, step=step, validation=False)
 results = model.fit(training_generator, validation_data=validation_generator,
                     epochs=150,  use_multiprocessing=True, workers=8,
                     callbacks=[earlystopper, checkpointer, tensorboard_callback]) #  TqdmCallback(verbose=2)
