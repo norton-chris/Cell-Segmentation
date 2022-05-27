@@ -61,17 +61,18 @@ print("model summary:", model.summary())
 tf.config.run_functions_eagerly(True)
 
 earlystopper = EarlyStopping(patience=15, verbose=1)
-checkpointer = ModelCheckpoint('h5_files/train_UNet512TIF100E' + datetime.now().strftime("-%Y%m%d-%H.%M") + '.h5',
+file_name = "UNET++512TIF32Flt1000E_200imgs_batchnorm_-20220526-21.07.h5"
+checkpointer = ModelCheckpoint('h5_files/' + file_name + datetime.now().strftime("-%Y%m%d-%H.%M") + '.h5',
                                verbose=0, save_best_only=False)
 
-log_dir = "logs/fit/UNet_" + datetime.now().strftime("%Y%m%d-%H%M%S")
+log_dir = "logs/fit/" + file_name + datetime.now().strftime("%Y%m%d-%H%M%S")
 tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
 input_shape = (512, 512, 1)
-training_generator = Batch_loader.BatchLoad(train, batch_size = 1, dim=input_shape, step=step, patching=False, validation=True)
-validation_generator = Batch_loader.BatchLoad(train, batch_size = 1, dim=input_shape, step=step, validation=False)
+training_generator = Batch_loader.BatchLoad(train, batch_size = 4, dim=input_shape, step=step, patching=False, validation=True)
+validation_generator = Batch_loader.BatchLoad(train, batch_size = 4, dim=input_shape, step=step, validation=False)
 results = model.fit(training_generator, validation_data=validation_generator,
                     epochs=150,  use_multiprocessing=True, workers=8,
-                    callbacks=[earlystopper, checkpointer, tensorboard_callback]) #  TqdmCallback(verbose=2)
+                    callbacks=[earlystopper, checkpointer, tensorboard_callback]) #  TqdmCallback(verbose=2), earlystopper
 
 print("Evaluate")
 result = model.evaluate(training_generator)

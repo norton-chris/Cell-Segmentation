@@ -49,13 +49,11 @@ class BatchLoad(keras.utils.all_utils.Sequence):
                     block[:, :, i] = (block[:, :, i] - vol_min) / (vol_max - vol_min)
             return block
         # Initialization
-        images = np.zeros((self.batch_size, *self.dim), dtype=int)  # define the numpy array for the batch
+        images = np.zeros((self.batch_size, *self.dim), dtype="float32")  # define the numpy array for the batch
         masks = np.zeros((self.batch_size, self.dim[0], self.dim[1]), dtype=bool)
-        i = 0
-        num_of_images = 0
         image_path = self.paths + "Images/"
         label_path = self.paths + "Labels/"
-        for path in batch_paths:
+        for i in range(0, self.batch_size):
             path = random.choice(batch_paths)
             #print("loop:", image_path + path)
             img = cv2.imread(image_path + path, -1)
@@ -87,13 +85,35 @@ class BatchLoad(keras.utils.all_utils.Sequence):
             if bool(random.getrandbits(1)):
                 patcher_img = Random_patcher(img, lab, batch_size=1, input_shape=self.dim, step=self.step, validation=self.validation)
                 #patcher_lab = Random_patcher(lab, batch_size= self.batch_size, step=self.step, image = False)
-                images, masks = patcher_img.patch_image()
+                images[i], masks[i] = patcher_img.patch_image()
+                #images[i] = image
+                # plt.imshow(image)
+                # plt.title("patched")
+                # plt.show()
+                #masks[i] = mask
+                # plt.imshow(masks[i])
+                # plt.title("pathced masks")
+                # plt.show()
+                # plt.imshow(images[i])
+                # plt.title("patched1")
+                # plt.show()
                 #masks = patcher_lab.patch_image()
             else:
                 img = cv2.resize(img, (self.dim[0], self.dim[1]))
+                img = np.array(img, dtype="float32")
                 lab = cv2.resize(lab, ((self.dim[0], self.dim[1])))
-                img = normalize_image(img.reshape(*self.dim))
+                img = img.reshape(*self.dim)
+                # plt.imshow(img)
+                # plt.title("reshape")
+                # plt.show()
+                img = normalize_image(img)
+                # plt.imshow(img)
+                # plt.title("normalized")
+                # plt.show()
                 images[i] = img
+                # plt.imshow(images[i])
+                # plt.title("normalized images")
+                # plt.show()
                 masks[i] = lab.reshape((self.dim[0], self.dim[1]))
 
 
@@ -119,8 +139,7 @@ class BatchLoad(keras.utils.all_utils.Sequence):
             # if images[i].max() == 0:
             #     print("image array shape:", images.shape)
             #     print("all pixels 0")
-            #i += 1
-            break
+            i += 1
 
         return images, masks
 

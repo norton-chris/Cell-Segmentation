@@ -38,10 +38,9 @@ class Random_patcher:
         #max_y_pixel = self.img.shape
 
         i = 0
-        black_image = False
-        images = np.zeros((self.batch_size, self.step, self.step, self.num_classes), dtype="float32")
-        masks = np.zeros((self.batch_size, self.step, self.step), dtype=bool)
-        while i < self.batch_size or black_image:
+        images = np.zeros((self.step, self.step, self.num_classes), dtype="float32")
+        masks = np.zeros((self.step, self.step), dtype=bool)
+        while True:
             # Get random integer from 0 to the image
             if self.img.shape[0] > self.img.shape[1]:
                 max_x_pixel = self.img.shape[1]
@@ -59,10 +58,7 @@ class Random_patcher:
             lab_crop = self.lab[rand_int:rand_int+self.step,rand_int:rand_int+self.step]
 
             if lab_crop.max() == 0:
-                black_image = True
                 continue
-            else:
-                black_image = False
             # print(rand_int)
             # lab_crop = np.array(lab_crop, dtype=bool)
             #img_crop = np.array(img_crop, dtype="float32")
@@ -79,10 +75,16 @@ class Random_patcher:
             if self.validation:
                 augment = Augmentor(img_crop, lab_crop)
                 img_crop, lab_crop = augment.rotate()
-
-            images[i] = normalize_image(img_crop.reshape(self.input_shape))
-            masks[i] = lab_crop.reshape((self.input_shape[0], self.input_shape[1]))
-            i += 1
-
+            img_crop = normalize_image(img_crop.reshape(*self.input_shape))
+            # plt.imshow(img_crop)
+            # plt.title("patcher")
+            # plt.show()
+            images = img_crop
+            masks = lab_crop.reshape((self.input_shape[0], self.input_shape[1]))
+            #i += 1
+            break
+        # plt.imshow(images)
+        # plt.title("patcher1")
+        # plt.show()
         return images, masks
 
