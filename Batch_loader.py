@@ -81,8 +81,8 @@ class BatchLoad(keras.utils.all_utils.Sequence):
             # plt.show()
             # plt.imshow(lab)
             # plt.show()
-            #if self.patching:
-            if bool(random.getrandbits(1)):
+            if self.patching:
+            #if bool(random.getrandbits(1)):
                 patcher_img = Random_patcher(img, lab, batch_size=1, input_shape=self.dim, step=self.step, augment=self.augment)
                 #patcher_lab = Random_patcher(lab, batch_size= self.batch_size, step=self.step, image = False)
                 images[i], masks[i] = patcher_img.patch_image()

@@ -19,3 +19,5 @@ parameters:
     values: [512, 256]
   augment:
     values: [True, False]
+  patching:
+    values: [True]

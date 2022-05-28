@@ -80,7 +80,8 @@ def train_model(args):
 
     log_dir = "logs/fit/" + file_name
     tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
-    training_generator = Batch_loader.BatchLoad(train, batch_size = args.batch_size, dim=dims, step=step, patching=False, augment=False)
+    training_generator = Batch_loader.BatchLoad(train, batch_size = args.batch_size, dim=dims, step=step,
+                                                patching=args.patching, augment=args.augment)
     validation_generator = Batch_loader.BatchLoad(train, batch_size = args.batch_size, dim=dims, step=step, augment=False)
     results = model.fit(training_generator, validation_data=validation_generator,
                         epochs=args.epochs,  use_multiprocessing=True, workers=8,
@@ -132,6 +133,12 @@ if __name__ == "__main__":
         type=bool,
         default=False,
         help="Use image augmentation"
+    )
+    parser.add_argument(
+        "--patching",
+        type=bool,
+        default=True,
+        help="Use image patching (True) or image resizing (False)"
     )
 
     args = parser.parse_args()
