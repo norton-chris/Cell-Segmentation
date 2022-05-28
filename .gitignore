@@ -5,5 +5,6 @@ TrainingDataset/
 logs/
 logs/fit/
 __pycache__/
+wandb/
 grab_number.py
 test_script.py

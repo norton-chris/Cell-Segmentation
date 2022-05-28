@@ -1,0 +1,14 @@
+program: wandb_train.py
+method: grid
+metric:
+  goal: maximize
+  name: val_dice_scoring
+parameters:
+  n_filter:
+    values: [16, 32]
+  learning_rate:
+    values: [0.001, 0.01, 0.0001]
+  epochs:
+    value: 20
+  batch_size:
+    values: [16, 32]

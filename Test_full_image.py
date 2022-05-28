@@ -74,7 +74,7 @@ test = root + "Images/"
 dims = 512
 step = 512
 # Predict on patches
-model = load_model('h5_files/UNET++512TIF150E-20220525-15.22.h5',
+model = load_model('h5_files/UNET++512TIF32Flt1000E_200imgs_batchnorm_-20220526-21.07.h5-20220527-17.49.h5',
                   custom_objects = { 'dice_plus_bce_loss': dice_plus_bce_loss,
                                     'dice_scoring': dice_scoring})
 
