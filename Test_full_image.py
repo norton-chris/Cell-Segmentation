@@ -74,12 +74,12 @@ test = root + "Images/"
 dims = 512
 step = 512
 # Predict on patches
-model = load_model('h5_files/UNET++512TIF32Flt1000E_200imgs_batchnorm_-20220526-21.07.h5-20220527-17.49.h5',
+model = load_model('h5_files/UNET++512TIF32Flt1000E_200imgs_batchnorm_-20220527-18.43.h5',
                   custom_objects = { 'dice_plus_bce_loss': dice_plus_bce_loss,
                                     'dice_scoring': dice_scoring})
 
 # load test patches
-images = np.zeros((len(os.listdir(test)), dims, dims, 1), dtype=int)  # define the numpy array for the batch
+images = np.zeros((len(os.listdir(test)), dims, dims, 1), dtype="float32")  # define the numpy array for the batch
 masks = np.zeros((len(os.listdir(test)), dims, dims, 1), dtype=bool)
 resize =  np.zeros((1, dims, dims, 1), dtype=int)
 i = 0
@@ -124,11 +124,11 @@ for path in os.listdir(test):
     resize = resized.reshape(1, step, step, 1)
     preds_full_image = model.predict(resize)
     #pred_imgs = np.empty((i, dims, dims, 1), dtype=int)
-    preds_test = (preds_test > 0.4).astype(np.uint8)
+    preds_test = (preds_test > 0.2).astype(np.uint8)
     preds_full_image = (preds_full_image > 0.4).astype(np.uint8)
     for i in range(0, len(preds_test)):
         # create figure
-        fig = plt.figure(figsize=(10, 7))
+        fig = plt.figure(figsize=(20, 14))
 
         for j in range(1, batch_size+1):
             # Adds a subplot at the 1st position
@@ -189,6 +189,13 @@ for path in os.listdir(test):
         unpatcher = Unpatcher(img, preds_test, img_name=test+path)
         full_pred_image = unpatcher.unpatch_image()
 
+        int_img = np.array(full_pred_image, dtype="uint8")
+        #reshaped = int_img.reshape(lab.shape[0], lab.shape[1], 1)
+        grey = int_img[:,:,0]
+        ret, thresh = cv2.threshold(grey, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+        kernel = np.ones((3,3), np.uint8)
+        remove_noise = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=2)
+
     #
         fig.add_subplot(int(row/step)+ 1, int(col/step), j + 3)
     #
@@ -199,7 +206,14 @@ for path in os.listdir(test):
         plt.imshow(full_pred_image)
         #plt.imshow(preds_full_image)
         plt.axis('off')
-        plt.title("label")
+        plt.title("prediction")
+
+        fig.add_subplot(int(row / step) + 2, int(col / step) + 3, j + 4)
+        plt.imshow(remove_noise)
+        # plt.imshow(preds_full_image)
+        plt.axis('off')
+        plt.title("remove noise")
+
         plt.show()
         break
 

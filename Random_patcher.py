@@ -13,7 +13,7 @@ class Random_patcher:
                  step = 512,
                  num_classes = 1,
                  image = True,
-                 validation = False):
+                 augment = False):
         self.img = img
         self.lab = lab
         self.batch_size = batch_size
@@ -21,7 +21,7 @@ class Random_patcher:
         self.step = step
         self.num_classes = num_classes
         self.image = image
-        self.validation = validation
+        self.augment = augment
 
     def __getitem__(self, item):
         return self.patch_image()
@@ -72,7 +72,7 @@ class Random_patcher:
             # plt.imshow(lab_crop)
             #
             # plt.show()
-            if self.validation:
+            if self.augment:
                 augment = Augmentor(img_crop, lab_crop)
                 img_crop, lab_crop = augment.rotate()
             img_crop = normalize_image(img_crop.reshape(*self.input_shape))

@@ -22,7 +22,7 @@ class BatchLoad(keras.utils.all_utils.Sequence):
                  step=128,
                  num_classes=1,
                  patching = True,
-                 validation = False):
+                 augment = False):
         self.paths = paths
         self.batch_size = batch_size
         self.dim = dim
@@ -31,7 +31,7 @@ class BatchLoad(keras.utils.all_utils.Sequence):
         self.step = step
         self.paths_temp = os.listdir(self.paths + "Images/")
         self.patching = patching
-        self.validation = validation
+        self.augment = augment
 
 
 
@@ -83,7 +83,7 @@ class BatchLoad(keras.utils.all_utils.Sequence):
             # plt.show()
             #if self.patching:
             if bool(random.getrandbits(1)):
-                patcher_img = Random_patcher(img, lab, batch_size=1, input_shape=self.dim, step=self.step, validation=self.validation)
+                patcher_img = Random_patcher(img, lab, batch_size=1, input_shape=self.dim, step=self.step, augment=self.augment)
                 #patcher_lab = Random_patcher(lab, batch_size= self.batch_size, step=self.step, image = False)
                 images[i], masks[i] = patcher_img.patch_image()
                 #images[i] = image

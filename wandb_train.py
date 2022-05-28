@@ -20,10 +20,6 @@ def train_model(args):
     os.environ['CUDA_VISIBLE_DEVICES'] = "0"
     print(tf.config.list_physical_devices('GPU'))
 
-    IMG_WIDTH = 512
-    IMG_HEIGHT = 512
-    IMG_CHANNELS = 1
-
     train = "TrainingDataset/correct_labels_subset/output/train/" # change this to your local training dataset
     #val = "TrainingDataset/output/val/" # change this to your local validation set
     val = "TrainingDataset/correct_labels_subset/output/val/"
@@ -34,12 +30,33 @@ def train_model(args):
     random.seed = seed
     np.random.seed = seed
 
-    dims = (512, 512, 1)
-    step = 512
-    unet = Models.UNET(n_filter=args.n_filter,
-                        input_dim=dims,
-                        learning_rate=args.learning_rate,
-                        num_classes=1)
+    if args.input_shape == 512:
+        dims = (512, 512, 1)
+        step = 512
+    elif args.input_shape == 256:
+        dims = (256, 256, 1)
+        step = 256
+    elif args.input_shape == 128:
+        dims = (128, 128, 1)
+        step = 128
+    else:
+        print("No input shape given.. defaulting to 512x512..")
+        dims = (512, 512, 1)
+        step = 512
+
+    if args.model == "unet":
+        unet = Models.UNET(n_filter=args.n_filter,
+                            input_dim=dims,
+                            learning_rate=args.learning_rate,
+                            num_classes=1)
+    elif args.model == "unet++":
+        unet = Models.UNetPlusPlus(n_filter=args.n_filter,
+                           input_dim=dims,
+                           learning_rate=args.learning_rate,
+                           num_classes=1)
+    else:
+        print("Error: No model set.. exiting..")
+        exit(-1)
 
     model = unet.create_model()
     print("model summary:", model.summary())
@@ -48,19 +65,26 @@ def train_model(args):
     #tf.config.experimental_run_functions_eagerly(True)
     tf.config.run_functions_eagerly(True)
 
-    earlystopper = EarlyStopping(patience=15, verbose=1)
-    file_name = "UNET++512TIF32Flt1000E_200imgs_batchnorm_-20220526-21.07.h5"
-    checkpointer = ModelCheckpoint('h5_files/' + file_name + datetime.now().strftime("-%Y%m%d-%H.%M") + '.h5',
+    #earlystopper = EarlyStopping(patience=15, verbose=1)
+    if args.augment:
+        file_name = args.model + str(args.input_shape) + str(args.n_filter) + "Flt" + str(
+            args.learning_rate) + "lr" + str(
+            args.epochs) + "E" + args.augment + "aug_200imgs_batchnorm_" + datetime.now().strftime("-%Y%m%d-%H.%M")
+    else:
+        file_name = args.model + str(args.input_shape) + str(args.n_filter) + "Flt" + str(
+            args.learning_rate) + "lr" + str(
+            args.epochs) + "E" + "_200imgs_batchnorm" + datetime.now().strftime("-%Y%m%d-%H.%M")
+
+    checkpointer = ModelCheckpoint('h5_files/' + file_name + '.h5',
                                    verbose=0, save_best_only=False)
 
-    log_dir = "logs/fit/" + file_name + datetime.now().strftime("%Y%m%d-%H%M%S")
+    log_dir = "logs/fit/" + file_name
     tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
-    input_shape = (512, 512, 1)
-    training_generator = Batch_loader.BatchLoad(train, batch_size = args.batch_size, dim=input_shape, step=step, patching=False, validation=False)
-    validation_generator = Batch_loader.BatchLoad(train, batch_size = args.batch_size, dim=input_shape, step=step, validation=False)
+    training_generator = Batch_loader.BatchLoad(train, batch_size = args.batch_size, dim=dims, step=step, patching=False, augment=False)
+    validation_generator = Batch_loader.BatchLoad(train, batch_size = args.batch_size, dim=dims, step=step, augment=False)
     results = model.fit(training_generator, validation_data=validation_generator,
                         epochs=args.epochs,  use_multiprocessing=True, workers=8,
-                        callbacks=[earlystopper, checkpointer, tensorboard_callback, WandbCallback()]) #  TqdmCallback(verbose=2), earlystopper
+                        callbacks=[checkpointer, tensorboard_callback, WandbCallback()]) #  TqdmCallback(verbose=2), earlystopper
 
     print("Evaluate")
     result = model.evaluate(training_generator)
@@ -90,6 +114,24 @@ if __name__ == "__main__":
         type=int,
         default=16,
         help="Size of batch"
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="unet",
+        help="Network to use"
+    )
+    parser.add_argument(
+        "--input_shape",
+        type=int,
+        default=512,
+        help="Model input shape"
+    )
+    parser.add_argument(
+        "--augment",
+        type=bool,
+        default=False,
+        help="Use image augmentation"
     )
 
     args = parser.parse_args()
