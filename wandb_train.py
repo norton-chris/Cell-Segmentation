@@ -15,9 +15,12 @@ import argparse
 import wandb
 from wandb.keras import WandbCallback
 
+import multiprocessing as mp
+
+
 def train_model(args):
     id = wandb.util.generate_id()
-    wandb.init(id=id, project='Cell-Segmentation', entity="nort", resume="allow")
+    wandb.init(id=id, project='Cell-Segmentation', entity="nort", resume="allow", group="GRP")
     wandb.config.update(args)
 
     os.environ['CUDA_VISIBLE_DEVICES'] = "0"
@@ -61,17 +64,6 @@ def train_model(args):
         print("Error: No model set.. exiting..")
         exit(-1)
 
-    if wandb.run.resumed:
-        model = keras.models.load_model(wandb.restore("model-best.h5").name)
-    else:
-        model = unet.create_model()
-    print("model summary:", model.summary())
-
-    # Fit model
-    #tf.config.experimental_run_functions_eagerly(True)
-    tf.config.run_functions_eagerly(True)
-
-    #earlystopper = EarlyStopping(patience=15, verbose=1)
     if args.augment:
         file_name = args.model + str(args.input_shape) + str(args.n_filter) + "Flt" + str(
             args.learning_rate) + "lr" + str(
@@ -80,6 +72,22 @@ def train_model(args):
         file_name = args.model + str(args.input_shape) + str(args.n_filter) + "Flt" + str(
             args.learning_rate) + "lr" + str(
             args.epochs) + "E" + "_200imgs_batchnorm" + datetime.now().strftime("-%Y%m%d-%H.%M")
+
+    if wandb.run.resumed:
+        try:
+            model = keras.models.load_model(wandb.restore('model.h5').name)
+        except:
+            model = unet.create_model()
+    else:
+        model = unet.create_model()
+    #print("model summary:", model.summary())
+
+    # Fit model
+    #tf.config.experimental_run_functions_eagerly(True)
+    tf.config.run_functions_eagerly(True)
+
+    #earlystopper = EarlyStopping(patience=15, verbose=1)
+
 
     checkpointer = ModelCheckpoint('h5_files/' + file_name + '.h5',
                                    verbose=0, save_best_only=False)
@@ -91,7 +99,7 @@ def train_model(args):
     validation_generator = Batch_loader.BatchLoad(train, batch_size = args.batch_size, dim=dims, step=step, augment=False)
     results = model.fit(training_generator, validation_data=validation_generator,
                         epochs=args.epochs,  use_multiprocessing=True, workers=8,
-                        callbacks=[checkpointer, tensorboard_callback, WandbCallback(
+                        callbacks=[wandb.save("model.h5"), checkpointer, tensorboard_callback, WandbCallback(
                         monitor="val_dice_scoring", verbose=0, mode="max", save_weights_only=(False),
                         log_weights=(False), log_gradients=(False), save_model=(True),
                         training_data=training_generator, validation_data=validation_generator, labels=[], predictions=5,
@@ -157,7 +165,17 @@ if __name__ == "__main__":
         default=True,
         help="Use image patching (True) or image resizing (False)"
     )
+    parser.add_argument(
+        "--project",
+        type=str,
+        default="Cell-Segmentation",
+        help="Name of project"
+    )
 
     args = parser.parse_args()
 
-    train_model(args)
+    wandb.require("service")
+    p = mp.Process(target=train_model, kwargs=dict(args=args))
+    p.start()
+    p.join()
+

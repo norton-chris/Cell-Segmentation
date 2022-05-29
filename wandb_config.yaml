@@ -1,4 +1,5 @@
 program: wandb_train.py
+description: Sweep for Cell-Segmentation
 method: random
 metric:
   goal: maximize
