@@ -96,7 +96,7 @@ def train_model(args):
     tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
     training_generator = Batch_loader.BatchLoad(train, batch_size = args.batch_size, dim=dims, step=step,
                                                 patching=args.patching, augment=args.augment)
-    validation_generator = Batch_loader.BatchLoad(train, batch_size = args.batch_size, dim=dims, step=step, augment=False)
+    validation_generator = Batch_loader.BatchLoad(val, batch_size = args.batch_size, dim=dims, step=step, augment=False)
     results = model.fit(training_generator, validation_data=validation_generator,
                         epochs=args.epochs,  use_multiprocessing=True, workers=8,
                         callbacks=[wandb.save("model.h5"), checkpointer, tensorboard_callback, WandbCallback(
@@ -174,8 +174,11 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    wandb.require("service")
-    p = mp.Process(target=train_model, kwargs=dict(args=args))
-    p.start()
-    p.join()
+    # for i in range(0, 1):
+    #     wandb.require("service")
+    #     p = mp.Process(target=train_model, kwargs=dict(args=args))
+    #     p.start()
+    #     p.join()
+    print("starting training")
+    train_model(args)
 

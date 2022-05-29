@@ -33,8 +33,6 @@ class BatchLoad(keras.utils.all_utils.Sequence):
         self.patching = patching
         self.augment = augment
 
-
-
     def __len__(self):
         return int(np.floor(len(self.paths_temp) / (self.batch_size)))
 
@@ -143,7 +141,7 @@ class BatchLoad(keras.utils.all_utils.Sequence):
 
         return images, masks
 
-    def __getitem__(self, index):
+    def __getitem__(self, item):
         # print(self.paths)
 
         # can augment here

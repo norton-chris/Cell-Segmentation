@@ -80,7 +80,7 @@ log_dir = "logs/fit/" + file_name + datetime.now().strftime("%Y%m%d-%H%M%S")
 tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
 input_shape = (512, 512, 1)
 training_generator = Batch_loader.BatchLoad(train, batch_size = 8, dim=input_shape, step=step, patching=False, augment=False)
-validation_generator = Batch_loader.BatchLoad(train, batch_size = 8, dim=input_shape, step=step, augment=False)
+validation_generator = Batch_loader.BatchLoad(val, batch_size = 8, dim=input_shape, step=step, augment=False)
 results = model.fit(training_generator, validation_data=validation_generator,
                     epochs=5,  use_multiprocessing=True, workers=8,
                     callbacks=[checkpointer, tensorboard_callback, WandbCallback()]) #  TqdmCallback(verbose=2), earlystopper

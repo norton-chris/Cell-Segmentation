@@ -141,7 +141,7 @@ class UNetPlusPlus(object):
         output = Conv2D(self.num_classes, 1, activation='sigmoid')(out)
 
         model = Model(inputs=self.input, outputs=output)
-        opt = Adam(lr=self.lr)
+        opt = Adam(learning_rate=self.lr)
         opt = tf.keras.mixed_precision.LossScaleOptimizer(opt)
         model.compile(optimizer=opt, loss=Scoring.dice_plus_bce_loss, metrics=Scoring.dice_scoring)
         # model.summary()
@@ -194,7 +194,7 @@ class UNET(object):
         output = Conv2D(1, [1, 1], activation='sigmoid')(l1)
 
         model = Model(inputs=self.input, outputs=output)
-        opt = Adam(lr=self.lr)
+        opt = Adam(learning_rate=self.lr)
         opt = tf.keras.mixed_precision.LossScaleOptimizer(opt)
         model.compile(optimizer=opt, loss=Scoring.dice_plus_bce_loss, metrics=Scoring.dice_scoring)
         # model.summary()
