@@ -4,8 +4,6 @@ metric:
   goal: maximize
   name: val_dice_scoring
 parameters:
-  n_filter:
-    values: 32
   learning_rate:
     min: 0.0001
     max: 0.001
@@ -19,5 +17,3 @@ parameters:
     values: [512, 256]
   augment:
     values: [True, False]
-  patching:
-    values: [True]

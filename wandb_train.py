@@ -2,6 +2,7 @@ import os
 import warnings
 from datetime import datetime
 
+import keras
 import numpy as np
 import random
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint,TensorBoard
@@ -16,6 +17,7 @@ from wandb.keras import WandbCallback
 
 def train_model(args):
     wandb.init(project='Cell-Segmentation', entity="nort")
+    wandb.config.update(args)
 
     os.environ['CUDA_VISIBLE_DEVICES'] = "0"
     print(tf.config.list_physical_devices('GPU'))
@@ -58,7 +60,10 @@ def train_model(args):
         print("Error: No model set.. exiting..")
         exit(-1)
 
-    model = unet.create_model()
+    if wandb.run.resumed:
+        model = keras.models.load_model(wandb.restore("model-best.h5").name)
+    else:
+        model = unet.create_model()
     print("model summary:", model.summary())
 
     # Fit model
@@ -69,7 +74,7 @@ def train_model(args):
     if args.augment:
         file_name = args.model + str(args.input_shape) + str(args.n_filter) + "Flt" + str(
             args.learning_rate) + "lr" + str(
-            args.epochs) + "E" + args.augment + "aug_200imgs_batchnorm_" + datetime.now().strftime("-%Y%m%d-%H.%M")
+            args.epochs) + "E" + "augment_200imgs_batchnorm_" + datetime.now().strftime("-%Y%m%d-%H.%M")
     else:
         file_name = args.model + str(args.input_shape) + str(args.n_filter) + "Flt" + str(
             args.learning_rate) + "lr" + str(
@@ -85,7 +90,18 @@ def train_model(args):
     validation_generator = Batch_loader.BatchLoad(train, batch_size = args.batch_size, dim=dims, step=step, augment=False)
     results = model.fit(training_generator, validation_data=validation_generator,
                         epochs=args.epochs,  use_multiprocessing=True, workers=8,
-                        callbacks=[checkpointer, tensorboard_callback, WandbCallback()]) #  TqdmCallback(verbose=2), earlystopper
+                        callbacks=[checkpointer, tensorboard_callback, WandbCallback(
+                        monitor="val_dice_scoring", verbose=0, mode="max", save_weights_only=(False),
+                        log_weights=(False), log_gradients=(False), save_model=(True),
+                        training_data=training_generator, validation_data=validation_generator, labels=[], predictions=5,
+                        generator=None, input_type="image", output_type="segmentation_mask", log_evaluation=(True),
+                        validation_steps=None, class_colors=([0,0,0], [255,255,255]), log_batch_frequency=None,
+                        log_best_prefix="best_", save_graph=(True), validation_indexes=None,
+                        validation_row_processor=None, prediction_row_processor=None,
+                        infer_missing_processors=(True), log_evaluation_frequency=0
+                                                                                    )
+                                    ]
+                        ) #  TqdmCallback(verbose=2), earlystopper
 
     print("Evaluate")
     result = model.evaluate(training_generator)
