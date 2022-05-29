@@ -16,7 +16,8 @@ import wandb
 from wandb.keras import WandbCallback
 
 def train_model(args):
-    wandb.init(project='Cell-Segmentation', entity="nort")
+    id = wandb.util.generate_id()
+    wandb.init(id=id, project='Cell-Segmentation', entity="nort", resume="allow")
     wandb.config.update(args)
 
     os.environ['CUDA_VISIBLE_DEVICES'] = "0"
