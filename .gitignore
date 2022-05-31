@@ -1,10 +1,10 @@
 MARS-NET/
 inference/
 h5_files/
-TrainingDataset/
 logs/
 logs/fit/
 __pycache__/
 wandb/
+TrainingDataset/
 grab_number.py
 test_script.py

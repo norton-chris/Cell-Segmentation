@@ -9,12 +9,9 @@ import tensorflow as tf
 import Models
 from tqdm.keras import TqdmCallback
 import Batch_loader
-import wandb
-from wandb.keras import WandbCallback
+import ray
 
-
-
-wandb.init(project='test', entity="nort")
+ray.init(num_cpus=4)
 
 os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 print(tf.config.list_physical_devices('GPU'))
@@ -54,11 +51,6 @@ np.random.seed = seed
 
 dims = (512, 512, 1)
 step = 512
-wandb.config = {
-    "learning_rate": 0.0002,
-    "epochs": 5,
-    "batch_size": 8
-}
 unet = Models.UNET(n_filter=32,
                     input_dim=dims,
                     learning_rate=0.0002,
@@ -79,11 +71,11 @@ checkpointer = ModelCheckpoint('h5_files/' + file_name + datetime.now().strftime
 log_dir = "logs/fit/" + file_name + datetime.now().strftime("%Y%m%d-%H%M%S")
 tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
 input_shape = (512, 512, 1)
-training_generator = Batch_loader.BatchLoad(train, batch_size = 8, dim=input_shape, step=step, patching=False, augment=False)
-validation_generator = Batch_loader.BatchLoad(val, batch_size = 8, dim=input_shape, step=step, augment=False)
+training_generator = Batch_loader.BatchLoad(train, batch_size=4, dim=input_shape, step=step, patching=False, augment=False)
+validation_generator = Batch_loader.BatchLoad(val, batch_size=4, dim=input_shape, step=step, augment=False, validate=True)
 results = model.fit(training_generator, validation_data=validation_generator,
-                    epochs=5,  use_multiprocessing=True, workers=8,
-                    callbacks=[checkpointer, tensorboard_callback, WandbCallback()]) #  TqdmCallback(verbose=2), earlystopper
+                    epochs=5,  use_multiprocessing=True, workers=4,
+                    callbacks=[checkpointer, tensorboard_callback]) #  TqdmCallback(verbose=2), earlystopper
 
 print("Evaluate")
 result = model.evaluate(training_generator)

@@ -1,4 +1,16 @@
 import random
+import ray
 
-while(True):
-    print(bool(random.getrandbits(1)))
+ray.init(num_cpus=4)
+
+
+@ray.remote
+def loop():
+    for i in range(0, 10):
+        print(i)
+
+
+for i in range(0, 10):
+    loop.remote()
+
+

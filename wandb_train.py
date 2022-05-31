@@ -15,21 +15,39 @@ import argparse
 import wandb
 from wandb.keras import WandbCallback
 
-import multiprocessing as mp
+from tensorflow.keras import mixed_precision
+import ray
+
+mixed_precision.set_global_policy('mixed_float16')
+os.environ['JOBLIB_TEMP_FOLDER'] = '/tmp'
 
 
 def train_model(args):
     id = wandb.util.generate_id()
-    wandb.init(id=id, project='Cell-Segmentation', entity="nort", resume="allow", group="GRP")
+    wandb.init(id=id, project='Cell-Segmentation', entity="nort", resume="allow")
     wandb.config.update(args)
 
     os.environ['CUDA_VISIBLE_DEVICES'] = "0"
-    print(tf.config.list_physical_devices('GPU'))
+    gpu = tf.config.list_physical_devices('GPU')
+
+    if gpu:
+        try:
+            for g in gpu:
+                tf.config.experimental.set_memory_growth(gpu, True)
+            logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+            print(len(gpu), "Physical GPUs", len(logical_gpus), "Logical GPUs")
+        except RuntimeError as e:
+            print(e)
+
+    ray.init(num_cpus=args.batch_size)
 
     train = "TrainingDataset/correct_labels_subset/output/train/" # change this to your local training dataset
     #val = "TrainingDataset/output/val/" # change this to your local validation set
     val = "TrainingDataset/correct_labels_subset/output/val/"
     test = "TrainingDataset/TrainingDataset/output/test/" # change this to your local testing set
+
+    num_train_images = len([name for name in os.listdir(train) if os.path.isfile(os.path.join(train, name))])
+    num_val_images = len([name for name in os.listdir(val) if os.path.isfile(os.path.join(val, name))])
 
     warnings.filterwarnings('ignore', category=UserWarning, module='skimage')
     seed = 42
@@ -96,7 +114,8 @@ def train_model(args):
     tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
     training_generator = Batch_loader.BatchLoad(train, batch_size = args.batch_size, dim=dims, step=step,
                                                 patching=args.patching, augment=args.augment)
-    validation_generator = Batch_loader.BatchLoad(val, batch_size = args.batch_size, dim=dims, step=step, augment=False)
+    validation_generator = Batch_loader.BatchLoad(val, batch_size = args.batch_size, dim=dims, step=step, augment=False, validate=True)
+    print("starting training")
     results = model.fit(training_generator, validation_data=validation_generator,
                         epochs=args.epochs,  use_multiprocessing=True, workers=8,
                         callbacks=[wandb.save("model.h5"), checkpointer, tensorboard_callback, WandbCallback(
@@ -104,7 +123,7 @@ def train_model(args):
                         log_weights=(False), log_gradients=(False), save_model=(True),
                         training_data=training_generator, validation_data=validation_generator, labels=[], predictions=5,
                         generator=None, input_type="image", output_type="segmentation_mask", log_evaluation=(True),
-                        validation_steps=None, class_colors=([0,0,0], [255,255,255]), log_batch_frequency=None,
+                        validation_steps=int(num_val_images/args.batch_size), class_colors=([0,0,0], [255,255,255]), log_batch_frequency=None,
                         log_best_prefix="best_", save_graph=(True), validation_indexes=None,
                         validation_row_processor=None, prediction_row_processor=None,
                         infer_missing_processors=(True), log_evaluation_frequency=0
@@ -179,6 +198,5 @@ if __name__ == "__main__":
     #     p = mp.Process(target=train_model, kwargs=dict(args=args))
     #     p.start()
     #     p.join()
-    print("starting training")
     train_model(args)
 

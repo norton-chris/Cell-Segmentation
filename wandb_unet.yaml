@@ -1,0 +1,19 @@
+program: wandb_train.py
+description: Sweep for Cell-Segmentation
+method: grid
+metric:
+  goal: maximize
+  name: val_dice_scoring
+parameters:
+  learning_rate:
+    values: [0.0001, 0.001, 0.01]
+  epochs:
+    values: [100, 800]
+  batch_size:
+    values: [32]
+  model:
+    values: ["unet"]
+  input_shape:
+    values: [512, 256]
+  augment:
+    values: [True, False]
