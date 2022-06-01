@@ -25,6 +25,7 @@ os.environ['JOBLIB_TEMP_FOLDER'] = '/tmp'
 def train_model(args):
     id = wandb.util.generate_id()
     wandb.init(id=id, project='Cell-Segmentation', entity="nort", resume="allow")
+    print(args)
     wandb.config.update(args)
 
     os.environ['CUDA_VISIBLE_DEVICES'] = "0"
@@ -33,7 +34,7 @@ def train_model(args):
     if gpu:
         try:
             for g in gpu:
-                tf.config.experimental.set_memory_growth(gpu, True)
+                tf.config.experimental.set_memory_growth(g, True)
             logical_gpus = tf.config.experimental.list_logical_devices('GPU')
             print(len(gpu), "Physical GPUs", len(logical_gpus), "Logical GPUs")
         except RuntimeError as e:
@@ -72,7 +73,9 @@ def train_model(args):
         unet = Models.UNET(n_filter=args.n_filter,
                             input_dim=dims,
                             learning_rate=args.learning_rate,
-                            num_classes=1)
+                            num_classes=1,
+                            dropout_rate=args.dropout_rate,
+                            activation="selu")
     elif args.model == "unet++":
         unet = Models.UNetPlusPlus(n_filter=args.n_filter,
                            input_dim=dims,
@@ -117,19 +120,8 @@ def train_model(args):
     validation_generator = Batch_loader.BatchLoad(val, batch_size = args.batch_size, dim=dims, step=step, augment=False, validate=True)
     print("starting training")
     results = model.fit(training_generator, validation_data=validation_generator,
-                        epochs=args.epochs,  use_multiprocessing=True, workers=8,
-                        callbacks=[wandb.save("model.h5"), checkpointer, tensorboard_callback, WandbCallback(
-                        monitor="val_dice_scoring", verbose=0, mode="max", save_weights_only=(False),
-                        log_weights=(False), log_gradients=(False), save_model=(True),
-                        training_data=training_generator, validation_data=validation_generator, labels=[], predictions=5,
-                        generator=None, input_type="image", output_type="segmentation_mask", log_evaluation=(True),
-                        validation_steps=int(num_val_images/args.batch_size), class_colors=([0,0,0], [255,255,255]), log_batch_frequency=None,
-                        log_best_prefix="best_", save_graph=(True), validation_indexes=None,
-                        validation_row_processor=None, prediction_row_processor=None,
-                        infer_missing_processors=(True), log_evaluation_frequency=0
-                                                                                    )
-                                    ]
-                        ) #  TqdmCallback(verbose=2), earlystopper
+                        epochs=args.epochs,  use_multiprocessing=False, workers=8,
+                        callbacks=[wandb.save("model.h5"), checkpointer, tensorboard_callback, WandbCallback()] ) #  TqdmCallback(verbose=2), earlystopper
 
     print("Evaluate")
     result = model.evaluate(training_generator)
@@ -189,6 +181,18 @@ if __name__ == "__main__":
         type=str,
         default="Cell-Segmentation",
         help="Name of project"
+    )
+    parser.add_argument(
+        "--dropout_rate",
+        type=float,
+        default=0.25,
+        help="Layer dropout rate"
+    )
+    parser.add_argument(
+        "--activation",
+        type=str,
+        default="selu",
+        help="Activation function to use"
     )
 
     args = parser.parse_args()

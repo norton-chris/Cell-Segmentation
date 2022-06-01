@@ -19,14 +19,14 @@ import tensorflow as tf
 import Scoring
 
 def convolution_relu_test(filters, kernel_size, use_batchnorm=True, use_dropout=True, drop_rate=0.05,
-                          conv_name='conv', bn_name='bn', relu_name='selu', stride=1):
+                          conv_name='conv', bn_name='bn', activation='selu', stride=1):
     def layer(x):
         x = Conv2D(filters, kernel_size, padding='same', use_bias=not use_batchnorm, strides=stride)(x)
         if use_batchnorm:
             x = BatchNormalization()(x)
         if use_dropout:
             x = Dropout(drop_rate)(x)
-        x = Activation(relu_name)(x)
+        x = Activation(activation)(x)
         return x
 
     return layer
@@ -149,31 +149,37 @@ class UNetPlusPlus(object):
 
 class UNET(object):
 
-    def __init__(self, n_filter=16, input_dim=(512, 512, 1), learning_rate=3e-5, num_classes=1):
+    def __init__(self, n_filter=16,
+                 input_dim=(512, 512, 1),
+                 learning_rate=3e-5, num_classes=1,
+                 dropout_rate=0.25,
+                 activation="selu"):
         self.n_filter = n_filter
         self.input = Input(input_dim)
         self.lr = learning_rate
         self.num_classes = num_classes
+        self.dropout_rate = dropout_rate
+        self.activation = activation
 
     def create_model(self):
         # Level 1
-        skip1 = convolution_relu_test(self.n_filter, 5)(self.input)
+        skip1 = convolution_relu_test(self.n_filter, 5, drop_rate=self.dropout_rate, activation=self.activation)(self.input)
         down1 = MaxPooling2D(pool_size=[2,2])(skip1)
 
         # level 2
-        skip2 = convolution_relu_test(self.n_filter * 2, 5)(down1)
+        skip2 = convolution_relu_test(self.n_filter * 2, 5, drop_rate=self.dropout_rate, activation=self.activation)(down1)
         down2 = MaxPooling2D(pool_size=[2,2])(skip2)
 
         # level 3
-        skip3 = convolution_relu_test(self.n_filter * 4, 5)(down2)
+        skip3 = convolution_relu_test(self.n_filter * 4, 5, drop_rate=self.dropout_rate, activation=self.activation)(down2)
         down3 = MaxPooling2D(pool_size=[2,2])(skip3)
 
         # level 4
-        skip4 = convolution_relu_test(self.n_filter * 8, 5)(down3)
+        skip4 = convolution_relu_test(self.n_filter * 8, 5, drop_rate=self.dropout_rate, activation=self.activation)(down3)
         down4 = MaxPooling2D(pool_size=[2, 2])(skip4)
 
         # level 5. Deepest
-        l5 = convolution_relu_test(self.n_filter * 16, 5)(down4)
+        l5 = convolution_relu_test(self.n_filter * 16, 5, drop_rate=self.dropout_rate, activation=self.activation)(down4)
 
         # level 4
         concat4 = concatenate([UpSampling2D(size=[2, 2])(l5), skip4])
@@ -194,7 +200,12 @@ class UNET(object):
         output = Conv2D(1, [1, 1], activation='sigmoid')(l1)
 
         model = Model(inputs=self.input, outputs=output)
-        opt = Adam(learning_rate=self.lr)
+
+        lr_schedule = keras.optimizers.schedules.ExponentialDecay(
+            initial_learning_rate=self.lr,
+            decay_steps=10000,
+            decay_rate=0.9)
+        opt = Adam(learning_rate=lr_schedule)
         opt = tf.keras.mixed_precision.LossScaleOptimizer(opt)
         model.compile(optimizer=opt, loss=Scoring.dice_plus_bce_loss, metrics=Scoring.dice_scoring)
         # model.summary()

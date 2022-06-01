@@ -87,3 +87,4 @@ class BatchLoad(keras.utils.all_utils.Sequence):
         images, masks = self.__data_generation(self.paths_temp)
 
         return images, masks
+

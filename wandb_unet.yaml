@@ -10,9 +10,9 @@ parameters:
   epochs:
     values: [100, 800]
   batch_size:
-    values: [32]
+    value: 32
   model:
-    values: ["unet"]
+    value: "unet"
   input_shape:
     values: [512, 256]
   augment:
