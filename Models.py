@@ -14,6 +14,7 @@ from keras.layers.convolutional import Conv2D
 from keras.layers import BatchNormalization, Activation
 from keras.engine.training import Model
 from tensorflow.keras.optimizers import Adam, SGD
+from tensorflow.keras.optimizers.schedules import ExponentialDecay
 import tensorflow as tf
 
 import Scoring
@@ -153,55 +154,66 @@ class UNET(object):
                  input_dim=(512, 512, 1),
                  learning_rate=3e-5, num_classes=1,
                  dropout_rate=0.25,
-                 activation="selu"):
+                 activation="selu",
+                 kernel_size = 3):
         self.n_filter = n_filter
         self.input = Input(input_dim)
         self.lr = learning_rate
         self.num_classes = num_classes
         self.dropout_rate = dropout_rate
         self.activation = activation
+        self.kernel_size = kernel_size
 
     def create_model(self):
         # Level 1
-        skip1 = convolution_relu_test(self.n_filter, 5, drop_rate=self.dropout_rate, activation=self.activation)(self.input)
+        skip1 = convolution_relu_test(self.n_filter, kernel_size=self.kernel_size,
+                                      drop_rate=self.dropout_rate, activation=self.activation)(self.input)
         down1 = MaxPooling2D(pool_size=[2,2])(skip1)
 
         # level 2
-        skip2 = convolution_relu_test(self.n_filter * 2, 5, drop_rate=self.dropout_rate, activation=self.activation)(down1)
+        skip2 = convolution_relu_test(self.n_filter * 2, kernel_size=self.kernel_size,
+                                      drop_rate=self.dropout_rate, activation=self.activation)(down1)
         down2 = MaxPooling2D(pool_size=[2,2])(skip2)
 
         # level 3
-        skip3 = convolution_relu_test(self.n_filter * 4, 5, drop_rate=self.dropout_rate, activation=self.activation)(down2)
+        skip3 = convolution_relu_test(self.n_filter * 4, kernel_size=self.kernel_size,
+                                      drop_rate=self.dropout_rate, activation=self.activation)(down2)
         down3 = MaxPooling2D(pool_size=[2,2])(skip3)
 
         # level 4
-        skip4 = convolution_relu_test(self.n_filter * 8, 5, drop_rate=self.dropout_rate, activation=self.activation)(down3)
+        skip4 = convolution_relu_test(self.n_filter * 8, kernel_size=self.kernel_size,
+                                      drop_rate=self.dropout_rate, activation=self.activation)(down3)
         down4 = MaxPooling2D(pool_size=[2, 2])(skip4)
 
         # level 5. Deepest
-        l5 = convolution_relu_test(self.n_filter * 16, 5, drop_rate=self.dropout_rate, activation=self.activation)(down4)
+        l5 = convolution_relu_test(self.n_filter * 16, kernel_size=self.kernel_size,
+                                   drop_rate=self.dropout_rate, activation=self.activation)(down4)
 
         # level 4
         concat4 = concatenate([UpSampling2D(size=[2, 2])(l5), skip4])
-        l4 = convolution_relu_test(self.n_filter * 8, 5)(concat4)
+        l4 = convolution_relu_test(self.n_filter * 8,  kernel_size=self.kernel_size, drop_rate=self.dropout_rate,
+                                   activation=self.activation)(concat4)
 
         # level 3
         concat3 = concatenate([UpSampling2D(size=[2, 2])(l4), skip3])
-        l3 = convolution_relu_test(self.n_filter * 4, 5)(concat3)
+        l3 = convolution_relu_test(self.n_filter * 4,  kernel_size=self.kernel_size, drop_rate=self.dropout_rate,
+                                   activation=self.activation)(concat3)
 
         # level 2
         concat2 = concatenate([UpSampling2D(size=[2, 2])(l3), skip2])
-        l2 = convolution_relu_test(self.n_filter * 2, 5)(concat2)
+        l2 = convolution_relu_test(self.n_filter * 2,  kernel_size=self.kernel_size, drop_rate=self.dropout_rate,
+                                   activation=self.activation)(concat2)
 
         # level 1
         concat1 = concatenate([UpSampling2D(size=[2, 2])(l2), skip1])
-        l1 = convolution_relu_test(self.n_filter, 5)(concat1)
+        l1 = convolution_relu_test(self.n_filter, kernel_size=self.kernel_size, drop_rate=self.dropout_rate,
+                                   activation=self.activation)(concat1)
 
         output = Conv2D(1, [1, 1], activation='sigmoid')(l1)
 
         model = Model(inputs=self.input, outputs=output)
 
-        lr_schedule = keras.optimizers.schedules.ExponentialDecay(
+        lr_schedule = ExponentialDecay(
             initial_learning_rate=self.lr,
             decay_steps=10000,
             decay_rate=0.9)

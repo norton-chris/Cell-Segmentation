@@ -21,7 +21,6 @@ import ray
 mixed_precision.set_global_policy('mixed_float16')
 os.environ['JOBLIB_TEMP_FOLDER'] = '/tmp'
 
-
 def train_model(args):
     id = wandb.util.generate_id()
     wandb.init(id=id, project='Cell-Segmentation', entity="nort", resume="allow")
@@ -75,7 +74,8 @@ def train_model(args):
                             learning_rate=args.learning_rate,
                             num_classes=1,
                             dropout_rate=args.dropout_rate,
-                            activation="selu")
+                            activation=args.activation,
+                            kernel_size=args.kernel_size)
     elif args.model == "unet++":
         unet = Models.UNetPlusPlus(n_filter=args.n_filter,
                            input_dim=dims,
@@ -193,6 +193,12 @@ if __name__ == "__main__":
         type=str,
         default="selu",
         help="Activation function to use"
+    )
+    parser.add_argument(
+        "--kernel_size",
+        type=int,
+        default=3,
+        help="Size of kernel"
     )
 
     args = parser.parse_args()
