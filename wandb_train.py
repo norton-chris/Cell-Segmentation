@@ -111,13 +111,13 @@ def train_model(args):
 
 
     checkpointer = ModelCheckpoint('h5_files/' + file_name + '.h5',
-                                   verbose=0, save_best_only=False)
+                                   verbose=0, monitor="val_dice_scoring", mode="max", save_best_only=True)
 
     log_dir = "logs/fit/" + file_name
     tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
     training_generator = Batch_loader.BatchLoad(train, batch_size = args.batch_size, dim=dims, step=step,
                                                 patching=args.patching, augment=args.augment)
-    validation_generator = Batch_loader.BatchLoad(val, batch_size = args.batch_size, dim=dims, step=step, augment=False, validate=True)
+    validation_generator = Batch_loader.BatchLoad(val, batch_size = args.batch_size, dim=dims, step=step, augment=True, validate=False)
     print("starting training")
     results = model.fit(training_generator, validation_data=validation_generator,
                         epochs=args.epochs,  use_multiprocessing=False, workers=8,

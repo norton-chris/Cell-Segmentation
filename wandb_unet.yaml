@@ -6,20 +6,20 @@ metric:
   name: val_dice_scoring
 parameters:
   learning_rate:
-    values: [0.01]
+    values: [0.0001]
   epochs:
-    values: [800]
+    values: [100]
   batch_size:
-    value: 32
+    value: 8
   model:
-    value: "unet"
+    values: ["unet++", "unet"]
   input_shape:
     values: [512]
   augment:
-    values: [True]
+    values: [False]
   dropout_rate:
-    values: [0.5, 0.25]
+    values: [0.05]
   activation:
-    values: ["selu", "relu"]
+    values: ["selu"]
   kernel_size:
-    values: [3, 5]
+    values: [5]

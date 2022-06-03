@@ -68,13 +68,13 @@ if gpus:
     # Memory growth must be set before GPUs have been initialized
     print(e)
 #root = "E:/Han Project/TrainingDataset/TrainingDataset/output/train/"
-root = "TrainingDataset/correct_labels_subset/output/test/"
+root = "TrainingDataset/correct_labels_subset/output/train/"
 test = root + "Images/"
 #test_mask = "E:/Han Project/TrainingDataset/TrainingDataset/output/train/Labels/"
 dims = 512
 step = 512
 # Predict on patches
-model = load_model('h5_files/UNET++512TIF32Flt1000E_200imgs_batchnorm_-20220527-18.43.h5',
+model = load_model('h5_files/model-best.h5',
                   custom_objects = { 'dice_plus_bce_loss': dice_plus_bce_loss,
                                     'dice_scoring': dice_scoring})
 
@@ -124,8 +124,8 @@ for path in os.listdir(test):
     resize = resized.reshape(1, step, step, 1)
     preds_full_image = model.predict(resize)
     #pred_imgs = np.empty((i, dims, dims, 1), dtype=int)
-    preds_test = (preds_test > 0.2).astype(np.uint8)
-    preds_full_image = (preds_full_image > 0.4).astype(np.uint8)
+    #preds_test = (preds_test > 0.2) #.astype(np.uint8)
+    #preds_full_image = (preds_full_image > 0.4).astype(np.uint8)
     for i in range(0, len(preds_test)):
         # create figure
         fig = plt.figure(figsize=(20, 14))

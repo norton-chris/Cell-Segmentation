@@ -136,13 +136,13 @@ test = root + "Images/"
 dims = 512
 step = 512
 # Predict on patches
-model = load_model('h5_files/train_UNet512TIF50E-20220517-23.04.h5', # train_UNet512TIF50E-20220519-23.41.h5
+model = load_model('h5_files/model-best.h5', # train_UNet512TIF50E-20220519-23.41.h5
                   custom_objects = { 'dice_plus_bce_loss': dice_plus_bce_loss,
                                     'dice_scoring': dice_scoring})
 
 # load test patches
-images = np.empty((len(os.listdir(test)), dims, dims, 1), dtype=int)  # define the numpy array for the batch
-masks = np.empty((len(os.listdir(test)), dims, dims, 1), dtype=bool)
+images = np.empty((len(os.listdir(test)), dims, dims, 1), dtype="float32")  # define the numpy array for the batch
+masks = np.empty((len(os.listdir(test)), dims, dims), dtype=bool)
 i = 0
 num_of_images = 0
 image_name = ""
@@ -150,7 +150,7 @@ max_x_pixel = 512
 max_y_pixel = 512
 for path in os.listdir(test):
     print("loop", test + path)
-    img = cv2.imread(test + path, -1)
+    img = cv2.imread(test + path, -1).astype("float32")
     lab = cv2.imread(root + "Labels/" + path, -1)
 
     # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -170,14 +170,14 @@ for path in os.listdir(test):
     # patcher_lab = Random_patcher(lab, batch_size=4, step=step, image=False)
     # images = patcher_img.patch_image()
     # masks = patcher_lab.patch_image()
-    patcher_img = Random_patcher(img, lab, batch_size=4, input_shape=(dims, dims, 1), step=step)
+    patcher_img = Random_patcher(img, lab, batch_size=1, input_shape=(dims, dims, 1), step=step)
     # patcher_lab = Random_patcher(lab, batch_size= self.batch_size, step=self.step, image = False)
     images, masks = patcher_img.patch_image()
     # images = Batch_loader.BatchLoad(test, batch_size = 1, dim = dims, step=step)
     print(images.shape)
-    preds_test = model.predict(images, verbose=1)
+    preds_test = model.predict(images.reshape((1,512,512,1)), verbose=1)
     #pred_imgs = np.empty((i, dims, dims, 1), dtype=int)
-    preds_test = (preds_test > 0.4).astype(np.uint8)
+    #preds_test = (preds_test > 0.4).astype(np.uint8)
     for i in range(0, len(preds_test)):
         # create figure
         fig = plt.figure(figsize=(10, 7))
@@ -186,7 +186,7 @@ for path in os.listdir(test):
         fig.add_subplot(1, 3, 1)
 
         # showing image
-        plt.imshow(images[i])
+        plt.imshow(images.reshape((1,512,512))[i])
         plt.axis('off')
         plt.title("Image")
 
@@ -194,7 +194,7 @@ for path in os.listdir(test):
         fig.add_subplot(1, 3, 2)
 
         # showing image
-        plt.imshow(masks[i])
+        plt.imshow(masks.reshape((1,512,512))[i])
         plt.axis('off')
         plt.title("Label")
 

@@ -27,7 +27,7 @@ def normalize_image(input_block):
 def thread_batch_loader(batch_paths, image_path, label_path, patching, dim, step, augment):
     path = random.choice(batch_paths)
     #print("loop:", image_path + path)
-    img = cv2.imread(image_path + path, -1)
+    img = cv2.imread(image_path + path, -1).astype("float32")
     lab = cv2.imread(label_path + path, -1)
     #p = path.split(".")
     #lab = cv2.imread(label_path + p[0] + ".png", 0)
