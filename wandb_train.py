@@ -17,17 +17,34 @@ from wandb.keras import WandbCallback
 
 from tensorflow.keras import mixed_precision
 import ray
+from ray.train import Trainer
+
+import json
 
 mixed_precision.set_global_policy('mixed_float16')
 os.environ['JOBLIB_TEMP_FOLDER'] = '/tmp'
 
-def train_model(args):
-    id = wandb.util.generate_id()
-    wandb.init(id=id, project='Cell-Segmentation', entity="nort", resume="allow")
-    print(args)
-    wandb.config.update(args)
+id = wandb.util.generate_id()
+wandb.init(id=id, project='Cell-Segmentation', entity="nort", resume="allow")
+#print(args)
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = "0"
+
+# This environment variable will be set by Ray Train.
+#tf_config = json.loads(os.environ['TF_CONFIG'])
+#num_workers = len(tf_config['cluster']['worker'])
+
+strategy = tf.distribute.MultiWorkerMirroredStrategy()
+
+
+#@ray.remote(num_gpus=.5)
+def train_model():
+    wandb.config.update(args)
+    #global_batch_size = args.batch_size * num_workers
+    #multi_worker_dataset = mnist_dataset(global_batch_size)
+
+
+
+    os.environ['CUDA_VISIBLE_DEVICES'] = "2"
     gpu = tf.config.list_physical_devices('GPU')
 
     if gpu:
@@ -39,15 +56,13 @@ def train_model(args):
         except RuntimeError as e:
             print(e)
 
-    ray.init(num_cpus=args.batch_size)
-
     train = "TrainingDataset/correct_labels_subset/output/train/" # change this to your local training dataset
     #val = "TrainingDataset/output/val/" # change this to your local validation set
     val = "TrainingDataset/correct_labels_subset/output/val/"
     test = "TrainingDataset/TrainingDataset/output/test/" # change this to your local testing set
 
-    num_train_images = len([name for name in os.listdir(train) if os.path.isfile(os.path.join(train, name))])
-    num_val_images = len([name for name in os.listdir(val) if os.path.isfile(os.path.join(val, name))])
+    #num_train_images = len([name for name in os.listdir(train) if os.path.isfile(os.path.join(train, name))])
+    #num_val_images = len([name for name in os.listdir(val) if os.path.isfile(os.path.join(val, name))])
 
     warnings.filterwarnings('ignore', category=UserWarning, module='skimage')
     seed = 42
@@ -98,9 +113,14 @@ def train_model(args):
         try:
             model = keras.models.load_model(wandb.restore('model.h5').name)
         except:
-            model = unet.create_model()
+
+            with strategy.scope():
+                # Model building/compiling need to be within `strategy.scope()`.
+                #multi_worker_model = build_and_compile_cnn_model()
+                model = unet.create_model()
     else:
-        model = unet.create_model()
+        with strategy.scope():
+            model = unet.create_model()
     #print("model summary:", model.summary())
 
     # Fit model
@@ -119,13 +139,22 @@ def train_model(args):
                                                 patching=args.patching, augment=args.augment)
     validation_generator = Batch_loader.BatchLoad(val, batch_size = args.batch_size, dim=dims, step=step, augment=True, validate=False)
     print("starting training")
-    results = model.fit(training_generator, validation_data=validation_generator,
-                        epochs=args.epochs,  use_multiprocessing=False, workers=8,
-                        callbacks=[wandb.save("model.h5"), checkpointer, tensorboard_callback, WandbCallback()] ) #  TqdmCallback(verbose=2), earlystopper
 
-    print("Evaluate")
+    results = model.fit(training_generator, validation_data=validation_generator,
+                                     epochs=args.epochs, use_multiprocessing=False, workers=8,
+                                     callbacks=[wandb.save("model.h5"), checkpointer, tensorboard_callback,
+                                                WandbCallback()])  # TqdmCallback(verbose=2), earlystopper
+
+    #multi_worker_model.fit(multi_worker_dataset, epochs=3, steps_per_epoch=70)
+
+    print("results:", results)
+    print("Evaluate:")
     result = model.evaluate(training_generator)
     print(result)
+
+
+
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -208,5 +237,19 @@ if __name__ == "__main__":
     #     p = mp.Process(target=train_model, kwargs=dict(args=args))
     #     p.start()
     #     p.join()
-    train_model(args)
+
+    ray.init(num_cpus=args.batch_size, num_gpus=3)
+    #ray.get([train_model.remote(args) for _ in range(2)]) # run 2 jobs on one gpu
+
+    #train_model(args)
+
+    trainer = Trainer(backend="tensorflow", num_workers=3)
+
+    # For GPU Training, set `use_gpu` to True.
+    # trainer = Trainer(backend="tensorflow", num_workers=4, use_gpu=True)
+
+    trainer.start()
+    trainer_results = trainer.run(train_model)
+    trainer.shutdown()
+    print(trainer_results)
 

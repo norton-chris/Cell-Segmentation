@@ -177,7 +177,7 @@ for path in os.listdir(test):
     print(images.shape)
     preds_test = model.predict(images.reshape((1,512,512,1)), verbose=1)
     #pred_imgs = np.empty((i, dims, dims, 1), dtype=int)
-    #preds_test = (preds_test > 0.4).astype(np.uint8)
+    #preds_test = (preds_test > 0.3).astype(np.uint8)
     for i in range(0, len(preds_test)):
         # create figure
         fig = plt.figure(figsize=(10, 7))
@@ -210,12 +210,12 @@ for path in os.listdir(test):
         # plt.show()
         # plt.imshow(masks[i])
         # plt.show()
-        cv2.imwrite("inference/predictions/images/Image[" + str(i) + "].tif", images[i])
+        #cv2.imwrite("inference/predictions/images/Image[" + str(i) + "].tif", images[i])
 
         # plt.imshow(preds_test[i])
         # plt.show()
         #pred_imgs[i] = preds_test[i]
-        cv2.imwrite("inference/predictions/predict/Prediction[" + str(i) + "].tif", preds_test[i])
+        #cv2.imwrite("inference/predictions/predict/Prediction[" + str(i) + "].tif", preds_test[i])
 
     # plt.imshow(full_pred_image)
     # plt.show()

@@ -168,6 +168,7 @@ class UNET(object):
         # Level 1
         skip1 = convolution(self.n_filter, kernel_size=self.kernel_size,
                                       drop_rate=self.dropout_rate, activation=self.activation)(self.input)
+        Conv2D(self.n_filter, self.kernel_size, padding='same', use_bias=not use_batchnorm)(x)
         down1 = MaxPooling2D(pool_size=[2,2])(skip1)
 
         # level 2
