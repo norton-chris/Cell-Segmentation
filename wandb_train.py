@@ -103,11 +103,11 @@ def train_model():
     if args.augment:
         file_name = args.model + str(args.input_shape) + str(args.n_filter) + "Flt" + str(
             args.learning_rate) + "lr" + str(
-            args.epochs) + "E" + "augment_200imgs_batchnorm_" + datetime.now().strftime("-%Y%m%d-%H.%M")
+            args.epochs) + "E" + "augment_300imgs_" + datetime.now().strftime("-%Y%m%d-%H.%M")
     else:
         file_name = args.model + str(args.input_shape) + str(args.n_filter) + "Flt" + str(
             args.learning_rate) + "lr" + str(
-            args.epochs) + "E" + "_200imgs_batchnorm" + datetime.now().strftime("-%Y%m%d-%H.%M")
+            args.epochs) + "E" + "_300imgs_" + datetime.now().strftime("-%Y%m%d-%H.%M")
 
     if wandb.run.resumed:
         try:

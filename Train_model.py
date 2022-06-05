@@ -11,7 +11,7 @@ from tqdm.keras import TqdmCallback
 import Batcher_loader_nothread
 import ray
 
-ray.init(num_cpus=4, num_gpus=3)
+ray.init(num_cpus=64, num_gpus=3)
 
 os.environ['CUDA_VISIBLE_DEVICES'] = "2"
 print(tf.config.list_physical_devices('GPU'))
@@ -53,7 +53,7 @@ def train_model():
 
     dims = (512, 512, 1)
     step = 512
-    unet = Models.UNET(n_filter=4,
+    unet = Models.UNET(n_filter=8,
                         input_dim=dims,
                         learning_rate=0.0002,
                         num_classes=1)
@@ -66,17 +66,17 @@ def train_model():
     tf.config.run_functions_eagerly(True)
 
     #earlystopper = EarlyStopping(patience=15, verbose=1)
-    file_name = "UNET++512TIF32Flt1000E_200imgs_batchnorm_"
+    file_name = "UNET512TIF32Flt1000E_300imgs_batchnorm_"
     checkpointer = ModelCheckpoint('h5_files/' + file_name + datetime.now().strftime("-%Y%m%d-%H.%M") + '.h5',
                                    verbose=0, save_best_only=False)
 
     log_dir = "logs/fit/" + file_name + datetime.now().strftime("%Y%m%d-%H%M%S")
     tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
     input_shape = (512, 512, 1)
-    training_generator = Batcher_loader_nothread.BatchLoad(train, batch_size=4, dim=input_shape, step=step, patching=False, augment=False)
-    validation_generator = Batcher_loader_nothread.BatchLoad(val, batch_size=4, dim=input_shape, step=step, augment=False, validate=True)
+    training_generator = Batcher_loader_nothread.BatchLoad(train, batch_size=8, dim=input_shape, step=step, patching=False, augment=False)
+    validation_generator = Batcher_loader_nothread.BatchLoad(val, batch_size=8, dim=input_shape, step=step, augment=False, validate=True)
     results = model.fit(training_generator, validation_data=validation_generator,
-                        epochs=5,  use_multiprocessing=False, workers=4,
+                        epochs=1000,  use_multiprocessing=False, workers=8,
                         callbacks=[checkpointer, tensorboard_callback]) #  TqdmCallback(verbose=2), earlystopper
 
     print("Evaluate")
@@ -84,4 +84,14 @@ def train_model():
     print(result)
 
 if __name__ == "__main__":
+    gpu = tf.config.list_physical_devices('GPU')
+
+    if gpu:
+        try:
+            for g in gpu:
+                tf.config.experimental.set_memory_growth(g, True)
+            logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+            print(len(gpu), "Physical GPUs", len(logical_gpus), "Logical GPUs")
+        except RuntimeError as e:
+            print(e)
     ray.get([train_model.remote() for _ in range(6)])
