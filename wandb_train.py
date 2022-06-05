@@ -56,10 +56,10 @@ def train_model():
         except RuntimeError as e:
             print(e)
 
-    train = "TrainingDataset/correct_labels_subset/output/train/" # change this to your local training dataset
+    train = "TrainingDataset/output/train/" # change this to your local training dataset
     #val = "TrainingDataset/output/val/" # change this to your local validation set
-    val = "TrainingDataset/correct_labels_subset/output/val/"
-    test = "TrainingDataset/TrainingDataset/output/test/" # change this to your local testing set
+    val = "TrainingDataset/output/val/"
+    test = "TrainingDataset/output/test/" # change this to your local testing set
 
     #num_train_images = len([name for name in os.listdir(train) if os.path.isfile(os.path.join(train, name))])
     #num_val_images = len([name for name in os.listdir(val) if os.path.isfile(os.path.join(val, name))])

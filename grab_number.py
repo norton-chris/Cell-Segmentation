@@ -10,8 +10,9 @@ for i in os.listdir(path):
 #         str = ""
 #         int(filter(s.isdigit, str))
 #         print(str)
+
     s = re.findall(r'\d+', i)
-    os.rename(i, path + s[0] + ".tif")
+    os.rename(path + i, path + s[0] + ".tif")
     print(s[0])
 
 
