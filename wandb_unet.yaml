@@ -12,7 +12,7 @@ parameters:
   batch_size:
     value: 8
   model:
-    values: [unet"]
+    values: ["unet"]
   input_shape:
     values: [512]
   augment:
