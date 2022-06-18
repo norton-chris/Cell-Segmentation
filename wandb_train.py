@@ -256,15 +256,15 @@ if __name__ == "__main__":
     ray.init(num_cpus=args.batch_size, num_gpus=3)
     #ray.get([train_model.remote(args) for _ in range(2)]) # run 2 jobs on one gpu
 
-    #train_model(args)
-
-    trainer = Trainer(backend="tensorflow", num_workers=3)
-
-    # For GPU Training, set `use_gpu` to True.
-    # trainer = Trainer(backend="tensorflow", num_workers=4, use_gpu=True)
-
-    trainer.start()
-    trainer_results = trainer.run(train_model)
-    trainer.shutdown()
-    print(trainer_results)
+    train_model(args)
+    #
+    # trainer = Trainer(backend="tensorflow", num_workers=3)
+    #
+    # # For GPU Training, set `use_gpu` to True.
+    # # trainer = Trainer(backend="tensorflow", num_workers=4, use_gpu=True)
+    #
+    # trainer.start()
+    # trainer_results = trainer.run(train_model)
+    # trainer.shutdown()
+    # print(trainer_results)trainer_results
 

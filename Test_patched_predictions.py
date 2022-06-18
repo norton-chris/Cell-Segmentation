@@ -37,6 +37,10 @@ __email__ = "cnorton@mtu.edu"
 __status__ = "Dev"
 
 # {code}
+# EDIT THE LINE BELOW
+test = "TrainingDataset/data_subset/output/test/" # EDIT THIS LINE
+# EDIT THE LINE ABOVE
+
 def normalize_image(input_block):
     block = input_block.copy()
     vol_max, vol_min = block.max(), block.min()
@@ -57,8 +61,7 @@ if gpus:
     # Memory growth must be set before GPUs have been initialized
     print(e)
 #root = "E:/Han Project/TrainingDataset/TrainingDataset/output/train/"
-root = "TrainingDataset/data_subset/output/test/"
-test = root + "Images/"
+#test = root + "Images/" # Uncomment if you have a folder inside called Images
 #test_mask = "E:/Han Project/TrainingDataset/TrainingDataset/output/train/Labels/"
 dims = 512
 step = 512

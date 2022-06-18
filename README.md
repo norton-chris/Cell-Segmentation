@@ -12,11 +12,18 @@ make sure to change training and validate directory in Train_model.py
 
 Then just run python Train_model.py
 
+## HYPER-Parameterization (I use this a lot)
+I use specified_gpu_wandb.py the most. I just set the GPU at the bottom
+of the file. 
+wandb_train.py runs with any available gpu.
+
 ## How to test model
 There are 3 testing files currently in use:
+edit "root = "TrainingDataset/data_subset/output/test/"" with a path to
+a directory of images. (line 41)
 
+- *Test_patched_predictions - show full size image, label, and prediction (I use this one the most)
 - Test_model.py - show image, label patch, predication patch
-- Test_patched_predictions - show full size image, label, and prediction
 - Test_full_image - show each prediction patch, as well as full size image, label, and prediction
 
 Make sure to change root and test variables to the correct directories
