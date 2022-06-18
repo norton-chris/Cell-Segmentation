@@ -62,9 +62,9 @@ if gpus:
   except RuntimeError as e:
     # Memory growth must be set before GPUs have been initialized
     print(e)
-#root = "E:/Han Project/TrainingDataset/TrainingDataset/output/train/"
-test = test + "Images/" # Uncomment if you have a folder inside called Images
-#test_mask = "E:/Han Project/TrainingDataset/TrainingDataset/output/train/Labels/"
+
+#################### MAIN ************************
+#test = test + "Images/" # Uncomment if you have a folder inside called Images
 dims = 512
 step = 512
 # Predict on patches
@@ -86,10 +86,13 @@ for path in os.listdir(test):
     print("loop", test + path)
     img = cv2.imread(test + path, -1).astype("float32")
     if useLabels:
-        lab = cv2.imread(test + "Labels/" + path, -1)
+        lab = cv2.imread(test + "Labels/" + path, -1) # HERE'S THE LINE THE READS THE LABELS
 
     batch_size = int(img.shape[0]/step) * int(img.shape[1]/step)
-    patcher_img = Patcher(img, batch_size=batch_size, input_shape=(dims, dims, 1), step=step)
+    if useLabels:
+        patcher_img = Patcher(img, batch_size=batch_size, input_shape=(dims, dims, 1), step=step)
+    else:
+        patcher_img = Patcher(img, lab, batch_size=batch_size, input_shape=(dims, dims, 1), step=step)
     images, row, col = patcher_img.patch_image()
     print("1 image shape:", images.shape)
     preds_test = model.predict(images, verbose=1)
@@ -117,8 +120,8 @@ for path in os.listdir(test):
         fig.add_subplot(1, 3, 2)
 
         # showing image
-
-        plt.imshow(lab)
+        if useLabels:
+            plt.imshow(lab)
         plt.axis('off')
         plt.title("label")
 
