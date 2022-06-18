@@ -37,11 +37,11 @@ __email__ = "cnorton@mtu.edu"
 __status__ = "Dev"
 
 # {code}
-# EDIT THE LINE BELOW
-test = "TrainingDataset/data_subset/output/test/" # EDIT THIS LINE
+################################# EDIT THE LINE BELOW ###############################
+test = "TrainingDataset/data_subset/output/test/" ## EDIT THIS LINE
 useLabels = True # set to true if you have a folder called Labels inside test (the above variable)
 # useLabels can be useful for seeing the accuracy.
-# EDIT THE LINE ABOVE
+################################# EDIT THE LINE ABOVE ###############################
 
 def normalize_image(input_block):
     block = input_block.copy()

@@ -5,8 +5,11 @@ logs/fit/
 __pycache__/
 wandb/
 TrainingDataset/
+random-images/
+inference/
 GCP_Notebook/*.h5
 h5_files/
+Batch_load_test.py
 grab_number.py
 test_script.py
 check_min_size.py
@@ -15,3 +18,13 @@ kaggle.py
 segmentation_inference.py
 segmentation_train.py
 Testreadimage.py
+ROS_bag_reader.ipynb
+segmentImage.m
+segmentImageDatastore.asv
+segmentImageDatastore.m
+segmentImageOneChan.m
+unetForCellSegmentationFull.asv
+unetForCellSegmentationFull.m
+Untitled.ipynb
+Untitled1.ipynb
+UNET_training.ipynb
