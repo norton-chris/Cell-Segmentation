@@ -1,33 +1,40 @@
+
+#----------------------------------------------------------------------------
+# Created By  : Chris Norton
+# ---------------------------------------------------------------------------
+"""
+This program will fit a model with the inputted dataset.
+"""
+# ---------------------------------------------------------------------------
+
+# Built-in
 import os
+
+# 3rd Party Libs
 import warnings
 from datetime import datetime
-
 import numpy as np
 import random
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint,TensorBoard
 import tensorflow as tf
 import Models
 from tqdm.keras import TqdmCallback
-import Batcher_loader_nothread
 import ray
 
-ray.init(num_cpus=64, num_gpus=3)
+# Owned
+import Batcher_loader_nothread
+__author__ = "Chris Norton"
+__maintainer__ = "Chris Norton"
+__email__ = "cnorton@mtu.edu"
+__status__ = "Dev"
 
-os.environ['CUDA_VISIBLE_DEVICES'] = "2"
+# {code}
+ray.init(num_cpus=64, num_gpus=3)
 print(tf.config.list_physical_devices('GPU'))
 
-@ray.remote(num_gpus=.5)
 def train_model():
-    IMG_WIDTH = 512
-    IMG_HEIGHT = 512
-    IMG_CHANNELS = 1
-
     train = "TrainingDataset/correct_labels_subset/output/train/" # change this to your local training dataset
-    #val = "TrainingDataset/output/val/" # change this to your local validation set
-    val = "TrainingDataset/correct_labels_subset/output/val/"
-    test = "TrainingDataset/TrainingDataset/output/test/" # change this to your local testing set
-
-    TEST_PATH = 'test_images/'
+    val = "TrainingDataset/correct_labels_subset/output/val/" # change this to your local validation set
 
     warnings.filterwarnings('ignore', category=UserWarning, module='skimage')
     seed = 42
@@ -61,7 +68,6 @@ def train_model():
     model = unet.create_model()
     print("model summary:", model.summary())
 
-    # Fit model
     #tf.config.experimental_run_functions_eagerly(True)
     tf.config.run_functions_eagerly(True)
 
@@ -94,4 +100,4 @@ if __name__ == "__main__":
             print(len(gpu), "Physical GPUs", len(logical_gpus), "Logical GPUs")
         except RuntimeError as e:
             print(e)
-    ray.get([train_model.remote() for _ in range(6)])
+    train_model()

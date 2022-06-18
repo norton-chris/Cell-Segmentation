@@ -1,3 +1,12 @@
+#----------------------------------------------------------------------------
+# Created By  : Chris Norton
+# ---------------------------------------------------------------------------
+"""
+Loads batches of images into model.fit function.
+It's multithreaded using ray, so every image is run in parallel.
+"""
+# ---------------------------------------------------------------------------
+
 import os
 import numpy as np
 import random

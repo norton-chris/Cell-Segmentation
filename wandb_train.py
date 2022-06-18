@@ -1,7 +1,18 @@
+#----------------------------------------------------------------------------
+# Created By  : Chris Norton
+# ---------------------------------------------------------------------------
+"""
+This program will fit a model with the inputted dataset.
+Uses wandb to use hyper-parameterization.
+"""
+# ---------------------------------------------------------------------------
+
+# Built-in
 import os
+
+# 3rd Party Libs
 import warnings
 from datetime import datetime
-
 import keras
 import numpy as np
 import random
@@ -9,18 +20,22 @@ from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint,TensorBoar
 import tensorflow as tf
 import Models
 from tqdm.keras import TqdmCallback
-import Batch_loader
-
 import argparse
 import wandb
 from wandb.keras import WandbCallback
-
 from tensorflow.keras import mixed_precision
 import ray
 from ray.train import Trainer
-
 import json
 
+# Owned
+import Batch_loader
+__author__ = "Chris Norton"
+__maintainer__ = "Chris Norton"
+__email__ = "cnorton@mtu.edu"
+__status__ = "Dev"
+
+# {code}
 mixed_precision.set_global_policy('mixed_float16')
 os.environ['JOBLIB_TEMP_FOLDER'] = '/tmp'
 

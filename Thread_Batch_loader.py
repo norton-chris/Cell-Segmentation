@@ -1,7 +1,6 @@
 import os
 import numpy as np
 import random
-from patchify import patchify
 import cv2
 import keras
 import matplotlib.pyplot as plt

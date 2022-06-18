@@ -1,8 +1,24 @@
+#----------------------------------------------------------------------------
+# Created By  : Chris Norton
+# ---------------------------------------------------------------------------
+"""
+Randomly takes a patch from a full size image and mask and
+returns an image and masks
+"""
+# ---------------------------------------------------------------------------
+
+# 3rd Party Libs
 import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 import random
+
+# Owned
 from Augmentor import Augmentor
+__author__ = "Chris Norton"
+__maintainer__ = "Chris Norton"
+__email__ = "cnorton@mtu.edu"
+__status__ = "Dev"
 
 class Random_patcher:
     def __init__(self,

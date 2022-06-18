@@ -50,12 +50,11 @@ class Patcher:
 
                 curx = curx + self.step
 
-                try:
-                    images[i] = normalize_image(cropped.reshape(self.step, self.step, self.num_classes)) # normalize_image(cropped.reshape(self.step, self.step, self.num_classes))
-                    masks[i] = cropped_lab.reshape(self.step, self.step, self.num_classes)
-                    i += 1
-                except:
-                    pass
+                cropped = normalize_image(cropped.reshape(self.step, self.step, self.num_classes))
+
+                images[i] = cropped # normalize_image(cropped.reshape(self.step, self.step, self.num_classes))
+                masks[i] = cropped_lab.reshape(self.step, self.step, self.num_classes)
+                i += 1
             curx = x_cur
             cury = cury + self.step
 

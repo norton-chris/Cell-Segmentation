@@ -2,11 +2,11 @@ import os
 import shutil
 
 
-path = "TrainingDataset/Images/"
-path1 = "TrainingDataset/Labels/"
+path = "TrainingDataset/TrainingDataset/Images/"
+path1 = "TrainingDataset/TrainingDataset/Labels/"
 
-output = "TrainingDataset/Images512/"
-output1 = "TrainingDataset/Labels512/"
+output = "TrainingDataset/TrainingDataset/Renamed_images/"
+output1 = "TrainingDataset/TrainingDataset/Renamed_labels/"
 r=0
 for i in os.listdir(path):
     try:
