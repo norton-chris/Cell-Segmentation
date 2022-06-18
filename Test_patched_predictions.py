@@ -39,7 +39,7 @@ __status__ = "Dev"
 # {code}
 # EDIT THE LINE BELOW
 test = "TrainingDataset/data_subset/output/test/" # EDIT THIS LINE
-useLabels = False # set to true if you have a folder called Labels inside test (the above variable)
+useLabels = True # set to true if you have a folder called Labels inside test (the above variable)
 # useLabels can be useful for seeing the accuracy.
 # EDIT THE LINE ABOVE
 
@@ -64,7 +64,7 @@ if gpus:
     print(e)
 
 #################### MAIN ************************
-#test = test + "Images/" # Uncomment if you have a folder inside called Images
+test = test + "Images/" # Uncomment if you have a folder inside called Images
 dims = 512
 step = 512
 # Predict on patches
@@ -82,18 +82,18 @@ image_name = ""
 max_x_pixel = 512
 max_y_pixel = 512
 print("total image shape:", images.shape)
-for path in os.listdir(test):
+for path in os.listdir(test): # Loop over Images in Directory
     print("loop", test + path)
     img = cv2.imread(test + path, -1).astype("float32")
     if useLabels:
-        lab = cv2.imread(test + "Labels/" + path, -1) # HERE'S THE LINE THE READS THE LABELS
+        lab = cv2.imread(test + "../Labels/" + path, -1) # HERE'S THE LINE THE READS THE LABELS
 
     batch_size = int(img.shape[0]/step) * int(img.shape[1]/step)
-    if useLabels:
+    if not useLabels:
         patcher_img = Patcher(img, batch_size=batch_size, input_shape=(dims, dims, 1), step=step)
     else:
         patcher_img = Patcher(img, lab, batch_size=batch_size, input_shape=(dims, dims, 1), step=step)
-    images, row, col = patcher_img.patch_image()
+    images, masks, row, col = patcher_img.patch_image()
     print("1 image shape:", images.shape)
     preds_test = model.predict(images, verbose=1)
 
