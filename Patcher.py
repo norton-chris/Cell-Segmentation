@@ -4,7 +4,7 @@ import cv2
 class Patcher:
     def __init__(self,
                  img,
-                 lab,
+                 lab=None,
                  batch_size = 1,
                  input_shape = (512, 512, 1),
                  step = 512,
@@ -37,7 +37,8 @@ class Patcher:
 
         i = 0
         images = np.zeros((self.batch_size, self.step, self.step, self.num_classes), dtype="float32")
-        masks = np.zeros((self.batch_size, self.step, self.step, self.num_classes), dtype=bool)
+        if self.lab is not None:
+            masks = np.zeros((self.batch_size, self.step, self.step, self.num_classes), dtype=bool)
         while cury < max_y_pixel:
             x_cur = curx
             while curx < max_x_pixel:
@@ -45,18 +46,21 @@ class Patcher:
                 # cropped = self.img.crop((curx, cury, curx+self.step, cury+self.step))
                 # cropped_lab = self.lab.crop((curx, cury, curx+self.step, cury + self.step))
                 cropped = self.img[curx:curx+self.step, cury:cury + self.step]
-                cropped_lab = self.lab[curx:curx + self.step, cury:cury + self.step]
-                cropped_lab = np.array(cropped_lab, dtype=bool)
+                if self.lab is not None:
+                    cropped_lab = self.lab[curx:curx + self.step, cury:cury + self.step]
+                    cropped_lab = np.array(cropped_lab, dtype=bool)
 
                 curx = curx + self.step
 
                 cropped = normalize_image(cropped.reshape(self.step, self.step, self.num_classes))
 
                 images[i] = cropped # normalize_image(cropped.reshape(self.step, self.step, self.num_classes))
-                masks[i] = cropped_lab.reshape(self.step, self.step, self.num_classes)
+                if self.lab is not None:
+                    masks[i] = cropped_lab.reshape(self.step, self.step, self.num_classes)
                 i += 1
             curx = x_cur
             cury = cury + self.step
-
-        return images, masks, max_x_pixel, max_y_pixel
-
+        if self.lab is not None:
+            return images, masks, max_x_pixel, max_y_pixel
+        else:
+            return images, max_x_pixel, max_y_pixel

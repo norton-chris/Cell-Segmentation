@@ -39,6 +39,8 @@ __status__ = "Dev"
 # {code}
 # EDIT THE LINE BELOW
 test = "TrainingDataset/data_subset/output/test/" # EDIT THIS LINE
+useLabels = False # set to true if you have a folder called Labels inside test (the above variable)
+# useLabels can be useful for seeing the accuracy.
 # EDIT THE LINE ABOVE
 
 def normalize_image(input_block):
@@ -61,7 +63,7 @@ if gpus:
     # Memory growth must be set before GPUs have been initialized
     print(e)
 #root = "E:/Han Project/TrainingDataset/TrainingDataset/output/train/"
-#test = root + "Images/" # Uncomment if you have a folder inside called Images
+test = test + "Images/" # Uncomment if you have a folder inside called Images
 #test_mask = "E:/Han Project/TrainingDataset/TrainingDataset/output/train/Labels/"
 dims = 512
 step = 512
@@ -83,11 +85,12 @@ print("total image shape:", images.shape)
 for path in os.listdir(test):
     print("loop", test + path)
     img = cv2.imread(test + path, -1).astype("float32")
-    lab = cv2.imread(root + "Labels/" + path, -1)
+    if useLabels:
+        lab = cv2.imread(test + "Labels/" + path, -1)
 
     batch_size = int(img.shape[0]/step) * int(img.shape[1]/step)
-    patcher_img = Patcher(img, lab, batch_size=batch_size, input_shape=(dims, dims, 1), step=step)
-    images, masks, row, col = patcher_img.patch_image()
+    patcher_img = Patcher(img, batch_size=batch_size, input_shape=(dims, dims, 1), step=step)
+    images, row, col = patcher_img.patch_image()
     print("1 image shape:", images.shape)
     preds_test = model.predict(images, verbose=1)
 
@@ -114,6 +117,7 @@ for path in os.listdir(test):
         fig.add_subplot(1, 3, 2)
 
         # showing image
+
         plt.imshow(lab)
         plt.axis('off')
         plt.title("label")
