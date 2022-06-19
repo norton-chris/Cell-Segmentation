@@ -17,7 +17,7 @@ I use ```specified_gpu_wandb.py``` the most. I just set the GPU at the bottom
 of the file. 
 ```wandb_train.py``` runs with any available gpu.
 
-## How to test model
+## How to segment image
 There are 3 testing files currently in use:
 edit "root = "TrainingDataset/data_subset/output/test/"" with a path to
 a directory of images. (line 41)
@@ -27,5 +27,14 @@ a directory of images. (line 41)
 - Test_full_image - show each prediction patch, as well as full size image, label, and prediction
 
 Make sure to change root and test variables to the correct directories
+
+## How to segment timelapse
+Segment_timelapse.py segments each image in a directory and saves to another specified directory.
+Usage: ```Segment_timelapse.py -i "input_folder" -o "output_folder" --confidence 0.5 --see_confidence_mask False```
+-i: path to input folder
+-o: path to output folder
+-c: confidence level between 0.0 and 1.0 (higher under segments, lower over segments)
+-s: see confidence mask - if this is set to False you get a binary mask,
+True overrides confidence level and produces a mask of confidence levels for each pixel.
 
 * Windows doesn't work with ray. I can setup Windows support if there is a need.
