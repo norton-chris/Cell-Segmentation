@@ -125,7 +125,7 @@ for path in os.listdir(input_dir):
     print("loop output", output + path)
     img = cv2.imread(input_dir + path, -1).astype("float32")
     if useLabels:
-        lab = cv2.imread(input_dir + "/Labels/" + path, -1)  # HERE'S THE LINE THE READS THE LABELS
+        lab = cv2.imread(input_dir + "/Labels/" + path, -1)  # HERE'S THE LINE THAT READS THE LABELS
 
     batch_size = int(img.shape[0] / step) * int(img.shape[1] / step)
     if not useLabels:

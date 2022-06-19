@@ -1,4 +1,3 @@
-
 #----------------------------------------------------------------------------
 # Created By  : Chris Norton
 # ---------------------------------------------------------------------------
@@ -29,34 +28,17 @@ __email__ = "cnorton@mtu.edu"
 __status__ = "Dev"
 
 # {code}
-ray.init(num_cpus=64, num_gpus=3)
+ray.init(num_cpus=8, num_gpus=1)
 print(tf.config.list_physical_devices('GPU'))
 
 def train_model():
-    train = "TrainingDataset/correct_labels_subset/output/train/" # change this to your local training dataset
-    val = "TrainingDataset/correct_labels_subset/output/val/" # change this to your local validation set
+    train = "TrainingDataset/correct_labels_subset/output/train/"  # change this to your local training dataset
+    val = "TrainingDataset/correct_labels_subset/output/val/"  # change this to your local validation set
 
     warnings.filterwarnings('ignore', category=UserWarning, module='skimage')
     seed = 42
     random.seed = seed
     np.random.seed = seed
-
-    # from sklearn.model_selection import train_test_split
-    # X_train, X_test, y_train, y_test = train_test_split(
-    #  train, test, test_size=0.33, random_state=42)
-
-    # count = 0
-    # i = 0
-    # for path in os.listdir(train + "Images/"):
-    #     if not os.path.isfile(train + "Images/"):
-    #         continue
-    #     if not (train + "Images/" + path == train + "Label"):
-    #         print("not same path")
-    #         print("bad image:", path)
-    #         count += 1
-    #     i+=1
-    # print("number of images:", i)
-    # print("number of bad image:", count)
 
     dims = (512, 512, 1)
     step = 512
