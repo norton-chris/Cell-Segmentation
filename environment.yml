@@ -5,5 +5,4 @@ dependencies:
   - python=3.8
   - cudatoolkit
   - cudnn
-  - cuda-driver
 prefix: /home/chris/anaconda3/envs/tf-3.8

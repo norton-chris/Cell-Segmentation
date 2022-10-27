@@ -68,7 +68,8 @@ test = test + "Images/" # Uncomment if you have a folder inside called Images
 dims = 512
 step = 512
 # Predict on patches
-model = load_model('h5_files/model-best.h5',
+model_file = 'h5_files/model-best-UNet++512.h5'
+model = load_model(model_file,
                   custom_objects = { 'dice_plus_bce_loss': Scoring.dice_plus_bce_loss,
                                     'dice_scoring': Scoring.dice_scoring})
 
@@ -77,10 +78,6 @@ images = np.zeros((len(os.listdir(test)), dims, dims, 1), dtype="float32")  # de
 masks = np.zeros((len(os.listdir(test)), dims, dims, 1), dtype=bool)
 resize =  np.zeros((1, dims, dims, 1), dtype=int)
 i = 0
-num_of_images = 0
-image_name = ""
-max_x_pixel = 512
-max_y_pixel = 512
 print("total image shape:", images.shape)
 for path in os.listdir(test): # Loop over Images in Directory
     print("loop", test + path)

@@ -28,12 +28,12 @@ __email__ = "cnorton@mtu.edu"
 __status__ = "Dev"
 
 # {code}
-ray.init(num_cpus=8, num_gpus=1)
+ray.init(num_cpus=4, num_gpus=1)
 print(tf.config.list_physical_devices('GPU'))
 
 def train_model():
-    train = "TrainingDataset/correct_labels_subset/output/train/"  # change this to your local training dataset
-    val = "TrainingDataset/correct_labels_subset/output/val/"  # change this to your local validation set
+    train = "TrainingDataset/output/train/"  # change this to your local training dataset
+    val = "TrainingDataset/output/val/"  # change this to your local validation set
 
     warnings.filterwarnings('ignore', category=UserWarning, module='skimage')
     seed = 42

@@ -10,9 +10,9 @@ and put them in corresponding folders.
 import os
 import shutil
 
-img_in_path = "TrainingDataset/TrainingDataset/Renamed_images/"
-img_out_path = "TrainingDataset/data_subset/Images/"
-lab_in_path = "TrainingDataset/data_subset/Labels/"
+img_in_path = "../TrainingDataset/Renamed_PNG/"
+img_out_path = "TrainingDataset/data_subset/jpg_label_images/Images/"
+lab_in_path = "TrainingDataset/data_subset/jpg_label_images/Labels/"
 
 for i in os.listdir(lab_in_path):
     s = i.split(".")

@@ -1,4 +1,4 @@
-program: wandb_train.py
+program: specified_gpu_wandb.py
 description: Sweep for Cell-Segmentation
 method: random
 metric:
@@ -9,9 +9,11 @@ parameters:
     min: 0.0001
     max: 0.001
   epochs:
-    value: 800
+    value: 5000
   batch_size:
-    values: [8, 16, 32]
+    values: [8, 16]
+  n_filter:
+    values: [16, 32]
   model:
     values: ["unet", "unet++"]
   input_shape:

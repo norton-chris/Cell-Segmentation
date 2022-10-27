@@ -100,11 +100,11 @@ if gpus:
   except RuntimeError as e:
     # Memory growth must be set before GPUs have been initialized
     print(e)
-input_dir = input_dir + "Images/" # uncomment if you images are in a folder called Images
-dims = 512
-step = 512
+input_dir = input_dir + "Images/"  # uncomment if you images are in a folder called Images
+dims = 256
+step = 256
 # Predict on patches
-model = load_model('h5_files/model-best.h5',
+model = load_model('h5_files/model-best.h5',  # location of h5 file
                   custom_objects = { 'dice_plus_bce_loss': Scoring.dice_plus_bce_loss,
                                     'dice_scoring': Scoring.dice_scoring})
 
@@ -113,10 +113,6 @@ images = np.zeros((len(os.listdir(input_dir)), dims, dims, 1), dtype="float32") 
 masks = np.zeros((len(os.listdir(input_dir)), dims, dims, 1), dtype=bool)
 resize =  np.zeros((1, dims, dims, 1), dtype=int)
 i = 0
-num_of_images = 0
-image_name = ""
-max_x_pixel = 512
-max_y_pixel = 512
 row = 0
 col = 0
 print("total image shape:", images.shape)

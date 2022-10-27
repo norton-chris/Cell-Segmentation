@@ -25,6 +25,10 @@ def normalize_image(input_block):
 @ray.remote(num_returns=2)
 def thread_batch_loader(batch_paths, image_path, label_path, patching, dim, step, augment):
     path = random.choice(batch_paths)
+    if not os.path.isfile(image_path + path):
+        print("error: " + image_path + path + " does not exist")
+    if not os.path.isfile(label_path + path):
+        print("error: " + label_path + path + " does not exist")
     img = cv2.imread(image_path + path, -1).astype("float32")
     lab = cv2.imread(label_path + path, -1)
     ret, lab = cv2.threshold(lab, 100, 255, cv2.THRESH_BINARY)

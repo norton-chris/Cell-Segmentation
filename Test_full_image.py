@@ -61,7 +61,7 @@ test = root + "Images/"
 dims = 512
 step = 512
 # Predict on patches
-model = load_model('h5_files/model-best.h5',
+model = load_model('h5_files/model-best-unet512.h5',
                   custom_objects = { 'dice_plus_bce_loss': Scoring.dice_plus_bce_loss,
                                     'dice_scoring': Scoring.dice_scoring})
 
@@ -72,8 +72,6 @@ resize =  np.zeros((1, dims, dims, 1), dtype=int)
 i = 0
 num_of_images = 0
 image_name = ""
-max_x_pixel = 512
-max_y_pixel = 512
 print("total image shape:", images.shape)
 for path in os.listdir(test):
     print("loop", test + path)
@@ -139,6 +137,11 @@ for path in os.listdir(test):
         #plt.imshow(preds_full_image)
         plt.axis('off')
         plt.title("prediction")
+
+        intersection = np.logical_and(lab, full_pred_image)
+        union = np.logical_or(lab, full_pred_image)
+        iou_score = np.sum(intersection) / np.sum(union)
+        print("IOU:", iou_score)
 
         # fig.add_subplot(int(row / step) + 2, int(col / step) + 3, j + 4)
         # plt.imshow(remove_noise)

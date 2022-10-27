@@ -18,8 +18,8 @@ from datetime import datetime
 import keras
 import numpy as np
 import random
-from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint,TensorBoard
 import tensorflow as tf
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint,TensorBoard
 import Models
 from tqdm.keras import TqdmCallback
 import argparse
@@ -55,8 +55,8 @@ def train_model(args):
         except RuntimeError as e:
             print(e)
 
-    train = "TrainingDataset/output/train/" # change this to your local training dataset
-    val = "TrainingDataset/output/val/"
+    train = "TrainingDataset/data_subset/output/train/" # change this to your local training dataset
+    val = "TrainingDataset/data_subset/output/val/"
 
     warnings.filterwarnings('ignore', category=UserWarning, module='skimage')
     seed = 42
@@ -97,11 +97,11 @@ def train_model(args):
     if args.augment:
         file_name = args.model + str(args.input_shape) + str(args.n_filter) + "Flt" + str(
             args.learning_rate) + "lr" + str(
-            args.epochs) + "E" + "augment_300imgs_" + datetime.now().strftime("-%Y%m%d-%H.%M")
+            args.epochs) + "E" + "augment_600imgs_" + datetime.now().strftime("-%Y%m%d-%H.%M")
     else:
         file_name = args.model + str(args.input_shape) + str(args.n_filter) + "Flt" + str(
             args.learning_rate) + "lr" + str(
-            args.epochs) + "E" + "_300imgs_" + datetime.now().strftime("-%Y%m%d-%H.%M")
+            args.epochs) + "E" + "_600imgs_" + datetime.now().strftime("-%Y%m%d-%H.%M")
 
     if wandb.run.resumed:
         try:
@@ -125,7 +125,7 @@ def train_model(args):
     print("starting training")
 
     results = model.fit(training_generator, validation_data=validation_generator,
-                                     epochs=args.epochs, use_multiprocessing=False, workers=8,
+                                     epochs=args.epochs, use_multiprocessing=False, workers=4,
                                      callbacks=[wandb.save("model.h5"), checkpointer, tensorboard_callback,
                                                 WandbCallback()])  # TqdmCallback(verbose=2), earlystopper
     print("results:", results)
@@ -154,12 +154,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--n_filter",
         type=int,
-        default=32,
+        default=8,
         help="number of filters")
     parser.add_argument(
         "--batch_size",
         type=int,
-        default=16,
+        default=1,
         help="Size of batch"
     )
     parser.add_argument(
@@ -220,6 +220,6 @@ if __name__ == "__main__":
     #     p.join()
 
     ray.init(num_cpus=args.batch_size, num_gpus=1)
-    with tf.device('/device:GPU:2'): # change to the gpu you specify
+    with tf.device('/device:GPU:0'): # change to the gpu you specify
         train_model(args)
 

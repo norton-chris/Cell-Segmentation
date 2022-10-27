@@ -7,6 +7,9 @@ wandb/
 TrainingDataset/
 random-images/
 inference/
+Cell-Segmentation-Release1.zip
+Cell-Segmentation.zip
+Images/
 GCP_Notebook/*.h5
 h5_files/
 Batch_load_test.py
@@ -28,3 +31,5 @@ unetForCellSegmentationFull.m
 Untitled.ipynb
 Untitled1.ipynb
 UNET_training.ipynb
+find_missing_files.py
+test-tf.py
