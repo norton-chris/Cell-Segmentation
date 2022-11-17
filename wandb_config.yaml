@@ -1,6 +1,6 @@
 program: specified_gpu_wandb.py
 description: Sweep for Cell-Segmentation
-method: random
+method: bayes
 metric:
   goal: maximize
   name: val_dice_scoring
@@ -9,14 +9,14 @@ parameters:
     min: 0.0001
     max: 0.001
   epochs:
-    value: 5000
+    value: 1000
   batch_size:
-    values: [8, 16]
+    values: [4, 8]
   n_filter:
     values: [16, 32]
   model:
     values: ["unet", "unet++"]
   input_shape:
     values: [512, 256]
-  augment:
-    values: [True, False]
+  kernel_size:
+    values: [3, 5]

@@ -13,6 +13,7 @@ GPU that is specified. This is the main program used currently.
 import os
 
 # 3rd Party Libs
+import time
 import warnings
 from datetime import datetime
 import keras
@@ -26,11 +27,20 @@ import argparse
 import wandb
 from wandb.keras import WandbCallback
 from tensorflow.keras import mixed_precision
+from tensorflow.keras.models import Model, load_model
 import ray
 from ray.train import Trainer
+import cv2
+import matplotlib.pyplot as plt
+
 
 # Owned
 import Batch_loader
+from Patcher import Patcher
+import Batch_loader
+from Random_patcher import Random_patcher
+from Unpatcher import Unpatcher
+import Scoring
 __author__ = "Chris Norton"
 __maintainer__ = "Chris Norton"
 __email__ = "cnorton@mtu.edu"
@@ -42,7 +52,7 @@ os.environ['JOBLIB_TEMP_FOLDER'] = '/tmp'
 
 def train_model(args):
     id = wandb.util.generate_id()
-    wandb.init(id=id, project='Cell-Segmentation', entity="nort", resume="allow")
+    run = wandb.init(id=id, project='Cell-Segmentation', entity="nort", resume="allow")
     wandb.config.update(args)
 
     gpu = tf.config.list_physical_devices('GPU')
@@ -55,8 +65,15 @@ def train_model(args):
         except RuntimeError as e:
             print(e)
 
-    train = "TrainingDataset/data_subset/output/train/" # change this to your local training dataset
-    val = "TrainingDataset/data_subset/output/val/"
+    train = "TrainingDataset/data_subset/323_subset/output/train/" # change this to your local training dataset
+    val = "TrainingDataset/data_subset/323_subset/output/val/"
+
+    num_train_imgs = len(os.listdir(train))
+    num_val_imgs = len(os.listdir(val))
+
+    # artifact = wandb.Artifact('Cells', type='dataset')
+    # artifact.add_dir("TrainingDataset/data_subset/323_subset/output/")  # Adds multiple files to artifact
+    # run.log_artifact(artifact)
 
     warnings.filterwarnings('ignore', category=UserWarning, module='skimage')
     seed = 42
@@ -89,20 +106,22 @@ def train_model(args):
         unet = Models.UNetPlusPlus(n_filter=args.n_filter,
                            input_dim=dims,
                            learning_rate=args.learning_rate,
-                           num_classes=1)
+                           num_classes=1,
+                           dropout_rate=args.dropout_rate,
+                           activation=args.activation,
+                           kernel_size=args.kernel_size)
     else:
         print("Error: No model set.. exiting..")
         exit(-1)
 
     if args.augment:
-        file_name = args.model + str(args.input_shape) + str(args.n_filter) + "Flt" + str(
-            args.learning_rate) + "lr" + str(
-            args.epochs) + "E" + "augment_600imgs_" + datetime.now().strftime("-%Y%m%d-%H.%M")
+        file_name = args.model + str(args.input_shape) + "shp" + str(args.n_filter) + "Flt" + str(
+            round(args.learning_rate, 2)) + "lr" + str(
+            args.epochs) + "E" + "augment_" + str(num_train_imgs) + "imgs" + datetime.now().strftime("-%Y%m%d-%H:%M")
     else:
-        file_name = args.model + str(args.input_shape) + str(args.n_filter) + "Flt" + str(
-            args.learning_rate) + "lr" + str(
-            args.epochs) + "E" + "_600imgs_" + datetime.now().strftime("-%Y%m%d-%H.%M")
-
+        file_name = args.model + str(args.input_shape) + "shp" + str(args.n_filter) + "Flt" + str(
+            round(args.learning_rate, 2)) + "lr" + str(
+            args.epochs) + "E_" + str(num_train_imgs) + "imgs" + datetime.now().strftime("-%Y%m%d-%H:%M")
     if wandb.run.resumed:
         try:
             model = keras.models.load_model(wandb.restore('model.h5').name)
@@ -131,8 +150,131 @@ def train_model(args):
     print("results:", results)
     print("Evaluate:")
     result = model.evaluate(training_generator)
+    model_file = "h5_files/" + str(file_name) + ".h5"
+    model.save(model_file)
     print(result)
 
+    model_artifact = wandb.Artifact(
+        "trained_model", type="model",
+        description="Model trained on" + file_name
+    )
+
+    model_artifact.add_file("h5_files/" + str(file_name) + ".h5")
+    wandb.save("h5_files" + str(file_name) + ".h5")
+
+    run.log_artifact(model_artifact)
+
+    ################################# EDIT THE LINE BELOW ###############################
+    test = "TrainingDataset/data_subset/323_subset/output/test/"  ## EDIT THIS LINE
+    useLabels = True  # set to true if you have a folder called Labels inside test (the above variable)
+
+    # useLabels can be useful for seeing the accuracy.
+    ################################# EDIT THE LINE ABOVE ###############################
+
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    if gpus:
+        try:
+            # Currently, memory growth needs to be the same across GPUs
+            for gpu in gpus:
+                tf.config.experimental.set_memory_growth(gpu, True)
+            logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+            print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+        except RuntimeError as e:
+            # Memory growth must be set before GPUs have been initialized
+            print(e)
+
+    #################### MAIN ************************
+    test = test + "Images/"  # Uncomment if you have a folder inside called Images
+    dims = args.input_shape
+    step = args.input_shape
+    # Predict on patches
+    while True: # try loop
+        try:
+            model = load_model(model_file,
+                       custom_objects={'dice_plus_bce_loss': Scoring.dice_plus_bce_loss,
+                                       'dice_scoring': Scoring.dice_scoring})
+            break
+        except Exception as e:
+            time.sleep(10)
+            print(e)
+            print("model_file:", model_file)
+            continue
+    # load test patches
+    images = np.zeros((len(os.listdir(test)), dims, dims, 1), dtype="float32")  # define the numpy array for the batch
+    masks = np.zeros((len(os.listdir(test)), dims, dims, 1), dtype=bool)
+    resize = np.zeros((1, dims, dims, 1), dtype=int)
+    i = 0
+    print("total image shape:", images.shape)
+    vis_table = wandb.Table(columns=["image"])
+    for path in random.sample(os.listdir(test), 5):  # Loop over Images in Directory
+        print("loop", test + path)
+        img = cv2.imread(test + path, -1).astype("float32")
+        if useLabels:
+            lab = cv2.imread(test + "../Labels/" + path, -1)  # HERE'S THE LINE THE READS THE LABELS
+
+        batch_size = int(img.shape[0] / step) * int(img.shape[1] / step)
+        if not useLabels:
+            patcher_img = Patcher(img, batch_size=batch_size, input_shape=(dims, dims, 1), step=step)
+        else:
+            patcher_img = Patcher(img, lab, batch_size=batch_size, input_shape=(dims, dims, 1), step=step)
+        images, masks, row, col = patcher_img.patch_image()
+        print("1 image shape:", images.shape)
+        preds_test = model.predict(images, verbose=1)
+
+        # Predicting resized images
+        # resized = cv2.resize(img, (dims, dims))
+        # resize = resized.reshape(1, step, step, 1)
+
+        # Predicting full sized images
+        # preds_full_image = model.predict(resize)
+        preds_test = (preds_test > 0.2)  # .astype(np.uint8) # showing predictions with
+        # preds_full_image = (preds_full_image > 0.4).astype(np.uint8)
+
+        # create figure
+        fig = plt.figure(figsize=(10, 4))
+
+        fig.add_subplot(1, 3, 1)
+
+        # showing image
+        plt.imshow(img)
+        plt.axis('off')
+        plt.title("image")
+
+        fig.add_subplot(1, 3, 2)
+
+        # showing image
+        if useLabels:
+            plt.imshow(lab)
+        plt.axis('off')
+        plt.title("label")
+
+        unpatcher = Unpatcher(img, preds_test, img_name=test + path)
+        full_pred_image = unpatcher.unpatch_image()
+
+        # int_img = np.array(full_pred_image, dtype="uint8")
+        # grey = int_img[:, :, 0]
+        # ret, thresh = cv2.threshold(grey, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        # kernel = np.ones((3, 3), np.uint8)
+        # remove_noise = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=2)
+
+        fig.add_subplot(1, 3, 3)
+        plt.imshow(full_pred_image)
+        # plt.imshow(preds_full_image)
+        plt.axis('off')
+        plt.title("prediction")
+
+        plt.subplots_adjust(wspace=.05, hspace=.05, left=.01, right=.99, top=.99, bottom=.01)
+
+        plt.savefig('data.png')
+        #plt.show()
+        plt.close()
+
+        #plt.show()
+        out = cv2.imread('data.png')
+        img = wandb.Image(out)
+        # img = wandb.Image(PIL.Image.fromarray(out.get_image()[:, :, ::-1]))
+        vis_table.add_data(img)
+    run.log({"infer_table": vis_table})
 
 
 
