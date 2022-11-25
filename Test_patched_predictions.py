@@ -25,6 +25,8 @@ import matplotlib.pyplot as plt
 from PIL import Image
 from typing import Tuple, Union, cast
 import wandb
+import image_similarity_measures
+from image_similarity_measures.quality_metrics import rmse, psnr, fsim
 
 # Owned
 from Patcher import Patcher
@@ -39,7 +41,7 @@ __status__ = "Dev"
 
 # {code}
 ################################# EDIT THE LINE BELOW ###############################
-test = "TrainingDataset/data_subset/323_subset/output/test/" ## EDIT THIS LINE
+test = "TrainingDataset/data_subset/323_subset/output/train/" ## EDIT THIS LINE
 useLabels = True # set to true if you have a folder called Labels inside test (the above variable)
 # useLabels can be useful for seeing the accuracy.
 ################################# EDIT THE LINE ABOVE ###############################
@@ -79,10 +81,11 @@ model = load_model(model_file,
 images = np.zeros((len(os.listdir(test)), dims, dims, 1), dtype="float32")  # define the numpy array for the batch
 masks = np.zeros((len(os.listdir(test)), dims, dims, 1), dtype=bool)
 resize = np.zeros((1, dims, dims, 1), dtype=int)
+average_fsim = 0
 i = 0
 print("total image shape:", images.shape)
-#run = wandb.init(project='Cell-Segmentation', entity="nort")
-#vis_table = wandb.Table(columns=["image"])
+run = wandb.init(project='Cell-Segmentation', entity="nort")
+vis_table = wandb.Table(columns=["image"])
 for path in random.sample(os.listdir(test), 5): # Loop over Images in Directory
     print("loop", test + path)
     img = cv2.imread(test + path, -1).astype("float32")
@@ -106,6 +109,13 @@ for path in random.sample(os.listdir(test), 5): # Loop over Images in Directory
     #preds_full_image = model.predict(resize)
     preds_test = (preds_test > 0.7) #.astype(np.uint8) # showing predictions with
     #preds_full_image = (preds_full_image > 0.4).astype(np.uint8)
+
+
+    lab = lab.reshape(lab.shape[0], lab.shape[1], 1)
+    #lab = normalize_image(lab)
+    #lab = lab.astype(np.uint8)
+    print("lab:", lab.dtype)
+
 
     # create figure
     fig = plt.figure(figsize=(10, 4))
@@ -137,6 +147,10 @@ for path in random.sample(os.listdir(test), 5): # Loop over Images in Directory
     kernel = np.ones((3,3), np.uint8)
     remove_noise = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=2)
 
+    full_pred_image = full_pred_image.astype(np.uint8)
+    print("pred:", full_pred_image.dtype)
+
+
     fig.add_subplot(1, 3, 3)
     plt.imshow(full_pred_image)
     #plt.imshow(preds_full_image)
@@ -146,12 +160,19 @@ for path in random.sample(os.listdir(test), 5): # Loop over Images in Directory
     plt.subplots_adjust(wspace=.05, hspace=.05, left=.01, right=.99, top=.99, bottom=.01)
 
     plt.savefig('data.png')
-    plt.show()
+    #plt.show()
     plt.close()
 
-    #out = cv2.imread('data.png')
-    #img = wandb.Image(out)
-    # img = wandb.Image(PIL.Image.fromarray(out.get_image()[:, :, ::-1]))
-    #vis_table.add_data(img)
+    fsim_score = fsim(lab, full_pred_image)
+    average_fsim += fsim_score
+    print(fsim_score)
 
-#run.log({"infer_table": vis_table})
+    out = cv2.imread('data.png')
+    img = wandb.Image(out)
+    #img = wandb.Image(PIL.Image.fromarray(out.get_image()[:, :, ::-1]))
+    vis_table.add_data(img)
+    #vis_table.add_data(fsim_score)
+
+run.log({"infer_table": vis_table})
+average_fsim /= 5
+wandb.log({"average_fsim": average_fsim})

@@ -3,11 +3,11 @@ description: Sweep for Cell-Segmentation
 method: bayes
 metric:
   goal: maximize
-  name: val_dice_scoring
+  name: average_fsim
 parameters:
   learning_rate:
     min: 0.0001
-    max: 0.001
+    max: 0.004
   epochs:
     value: 1000
   batch_size:

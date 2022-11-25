@@ -32,6 +32,8 @@ import ray
 from ray.train import Trainer
 import cv2
 import matplotlib.pyplot as plt
+import image_similarity_measures
+from image_similarity_measures.quality_metrics import rmse, psnr, fsim
 
 
 # Owned
@@ -203,6 +205,8 @@ def train_model(args):
     images = np.zeros((len(os.listdir(test)), dims, dims, 1), dtype="float32")  # define the numpy array for the batch
     masks = np.zeros((len(os.listdir(test)), dims, dims, 1), dtype=bool)
     resize = np.zeros((1, dims, dims, 1), dtype=int)
+
+    average_fsim = 0
     i = 0
     print("total image shape:", images.shape)
     vis_table = wandb.Table(columns=["image"])
@@ -245,6 +249,7 @@ def train_model(args):
         # showing image
         if useLabels:
             plt.imshow(lab)
+        lab = lab.reshape(lab.shape[0], lab.shape[1], 1)
         plt.axis('off')
         plt.title("label")
 
@@ -269,12 +274,18 @@ def train_model(args):
         #plt.show()
         plt.close()
 
+        fsim_score = fsim(lab, full_pred_image)
+        average_fsim += fsim_score
+
         #plt.show()
         out = cv2.imread('data.png')
         img = wandb.Image(out)
         # img = wandb.Image(PIL.Image.fromarray(out.get_image()[:, :, ::-1]))
         vis_table.add_data(img)
+        #vis_table.add_data(fsim_score)
     run.log({"infer_table": vis_table})
+    average_fsim /= 5
+    wandb.log({"average_fsim": average_fsim})
 
 
 
