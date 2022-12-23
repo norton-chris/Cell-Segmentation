@@ -42,6 +42,7 @@ from Patcher import Patcher
 import Batch_loader
 from Random_patcher import Random_patcher
 from Unpatcher import Unpatcher
+from Random_unpatcher import Random_unpatcher
 import Scoring
 __author__ = "Chris Norton"
 __maintainer__ = "Chris Norton"
@@ -156,12 +157,12 @@ def train_model(args):
     model.save(model_file)
     print(result)
 
-    model_artifact = wandb.Artifact(
-        "trained_model", type="model",
-        description="Model trained on" + file_name
-    )
-
-    model_artifact.add_file("h5_files/" + str(file_name) + ".h5")
+    # model_artifact = wandb.Artifact(
+    #     "trained_model", type="model",
+    #     description="Model trained on" + file_name
+    # )
+    #
+    # model_artifact.add_file("h5_files/" + str(file_name) + ".h5")
     wandb.save("h5_files" + str(file_name) + ".h5")
 
     run.log_artifact(model_artifact)
