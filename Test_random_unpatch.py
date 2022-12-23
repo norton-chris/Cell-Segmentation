@@ -33,6 +33,7 @@ from Patcher import Patcher
 import Batch_loader
 from Random_patcher import Random_patcher
 from Unpatcher import Unpatcher
+from Random_unpatcher import Random_unpatcher
 import Scoring
 __author__ = "Chris Norton"
 __maintainer__ = "Chris Norton"
@@ -41,7 +42,7 @@ __status__ = "Dev"
 
 # {code}
 ################################# EDIT THE LINE BELOW ###############################
-test = "TrainingDataset/data_subset/323_subset/output/train/" ## EDIT THIS LINE
+test = "TrainingDataset/data_subset/323_subset/output/test/" ## EDIT THIS LINE
 useLabels = True # set to true if you have a folder called Labels inside test (the above variable)
 # useLabels can be useful for seeing the accuracy.
 ################################# EDIT THE LINE ABOVE ###############################
@@ -84,22 +85,23 @@ resize = np.zeros((1, dims, dims, 1), dtype=int)
 average_fsim = 0
 i = 0
 print("total image shape:", images.shape)
-run = wandb.init(project='Cell-Segmentation', entity="nort")
-vis_table = wandb.Table(columns=["image"])
-for path in random.sample(os.listdir(test), 5): # Loop over Images in Directory
+#run = wandb.init(project='Cell-Segmentation', entity="nort")
+#vis_table = wandb.Table(columns=["image"])
+print(len(os.listdir(test)))
+for path in os.listdir(test): # Loop over Images in Directory
     print("loop", test + path)
     img = cv2.imread(test + path, -1).astype("float32")
     if useLabels:
         lab = cv2.imread(test + "../Labels/" + path, -1) # HERE'S THE LINE THE READS THE LABELS
-
-    batch_size = int(img.shape[0]/step) * int(img.shape[1]/step)
-    if not useLabels:
-        patcher_img = Patcher(img, batch_size=batch_size, input_shape=(dims, dims, 1), step=step)
-    else:
-        patcher_img = Patcher(img, lab, batch_size=batch_size, input_shape=(dims, dims, 1), step=step)
-    images, masks, row, col = patcher_img.patch_image()
-    print("1 image shape:", images.shape)
-    preds_test = model.predict(images, verbose=1)
+    #
+    # batch_size = int(img.shape[0]/step) * int(img.shape[1]/step)
+    # if not useLabels:
+    #     patcher_img = Patcher(img, batch_size=batch_size, input_shape=(dims, dims, 1), step=step)
+    # else:
+    #     patcher_img = Patcher(img, lab, batch_size=batch_size, input_shape=(dims, dims, 1), step=step)
+    # images, masks, row, col = patcher_img.patch_image()
+    # print("1 image shape:", images.shape)
+    # preds_test = model.predict(images, verbose=1)
 
     # Predicting resized images
     #resized = cv2.resize(img, (dims, dims))
@@ -107,7 +109,7 @@ for path in random.sample(os.listdir(test), 5): # Loop over Images in Directory
 
     # Predicting full sized images
     #preds_full_image = model.predict(resize)
-    preds_test = (preds_test > 0.7) #.astype(np.uint8) # showing predictions with
+    #preds_test = (preds_test > 0.7) #.astype(np.uint8) # showing predictions with
     #preds_full_image = (preds_full_image > 0.4).astype(np.uint8)
 
 
@@ -132,22 +134,22 @@ for path in random.sample(os.listdir(test), 5): # Loop over Images in Directory
     # showing image
     if useLabels:
         plt.imshow(lab)
-        cv2.imwrite("./inference/predictions/" + "label" + datetime.now().strftime("-%Y%m%d-%H:%M") + ".tif", lab)
+        #cv2.imwrite("./inference/predictions/" + "label" + datetime.now().strftime("-%Y%m%d-%H:%M") + ".tif", lab)
     plt.axis('off')
     plt.title("label")
 
-    unpatcher = Unpatcher(img, preds_test, img_name=test+path)
-    full_pred_image = unpatcher.unpatch_image()
+    unpatcher = Random_unpatcher(img, img_name=test+path, model=model, input_shape=(dims, dims, 1), num_crop=500)
+    full_pred_image = unpatcher.efficient_random_unpatch()
 
-    cv2.imwrite("./inference/predictions/" + "prediction" + datetime.now().strftime("-%Y%m%d-%H:%M") + ".tif", full_pred_image)
+    #cv2.imwrite("./inference/predictions/random_unpatch/" + "random_unpatch_prediction" + datetime.now().strftime("-%Y%m%d-%H:%M") + ".tif", full_pred_image)
 
     int_img = np.array(full_pred_image, dtype="uint8")
-    grey = int_img[:,:,0]
-    ret, thresh = cv2.threshold(grey, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-    kernel = np.ones((3,3), np.uint8)
-    remove_noise = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=2)
+    #grey = int_img[:,:,0]
+    # ret, thresh = cv2.threshold(grey, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    # kernel = np.ones((3,3), np.uint8)
+    # remove_noise = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=2)
 
-    full_pred_image = full_pred_image.astype(np.uint8)
+    #full_pred_image = full_pred_image.astype(np.uint8)
     print("pred:", full_pred_image.dtype)
 
 
@@ -158,21 +160,24 @@ for path in random.sample(os.listdir(test), 5): # Loop over Images in Directory
     plt.title("prediction")
 
     plt.subplots_adjust(wspace=.05, hspace=.05, left=.01, right=.99, top=.99, bottom=.01)
-
-    plt.savefig('data.png')
-    plt.show()
-    plt.close()
-
+    full_pred_image = full_pred_image.reshape(full_pred_image.shape[0], full_pred_image.shape[1], 1)
     fsim_score = fsim(lab, full_pred_image)
     average_fsim += fsim_score
     print(fsim_score)
+    text = "fsim_score: " + str(fsim_score)
+    fig.text(.5, .05, text, ha='center')
 
-    out = cv2.imread('data.png')
-    img = wandb.Image(out)
+    plt.savefig("./inference/predictions/random_unpatch/" + "random_unpatch_prediction" + datetime.now().strftime("-%Y%m%d-%H:%M") + ".png")
+    #plt.show()
+    plt.close()
+
+    #out = cv2.imread('data.png')
+    #img = wandb.Image(out)
     #img = wandb.Image(PIL.Image.fromarray(out.get_image()[:, :, ::-1]))
-    vis_table.add_data(img)
+    #vis_table.add_data(img)
     #vis_table.add_data(fsim_score)
 
-run.log({"infer_table": vis_table})
-average_fsim /= 5
-wandb.log({"average_fsim": average_fsim})
+#run.log({"infer_table": vis_table})
+average_fsim /= len(os.listdir(test))
+print("average_fsim:", average_fsim)
+#wandb.log({"average_fsim": average_fsim})

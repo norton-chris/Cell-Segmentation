@@ -210,7 +210,7 @@ def train_model(args):
     i = 0
     print("total image shape:", images.shape)
     vis_table = wandb.Table(columns=["image"])
-    for path in random.sample(os.listdir(test), 5):  # Loop over Images in Directory
+    for path in os.listdir(test):  # Loop over Images in Directory
         print("loop", test + path)
         img = cv2.imread(test + path, -1).astype("float32")
         if useLabels:
@@ -253,8 +253,8 @@ def train_model(args):
         plt.axis('off')
         plt.title("label")
 
-        unpatcher = Unpatcher(img, preds_test, img_name=test + path)
-        full_pred_image = unpatcher.unpatch_image()
+        unpatcher = Random_unpatcher(img, img_name=test + path, model=model, input_shape=(dims, dims, 1), num_crop=500)
+        full_pred_image = unpatcher.efficient_random_unpatch()
 
         # int_img = np.array(full_pred_image, dtype="uint8")
         # grey = int_img[:, :, 0]
@@ -269,6 +269,12 @@ def train_model(args):
         plt.title("prediction")
 
         plt.subplots_adjust(wspace=.05, hspace=.05, left=.01, right=.99, top=.99, bottom=.01)
+        full_pred_image = full_pred_image.reshape(full_pred_image.shape[0], full_pred_image.shape[1], 1)
+        fsim_score = fsim(lab, full_pred_image)
+        average_fsim += fsim_score
+        print(fsim_score)
+        text = "fsim_score: " + str(fsim_score)
+        fig.text(.5, .05, text, ha='center')
 
         plt.savefig('data.png')
         #plt.show()
@@ -283,8 +289,9 @@ def train_model(args):
         # img = wandb.Image(PIL.Image.fromarray(out.get_image()[:, :, ::-1]))
         vis_table.add_data(img)
         #vis_table.add_data(fsim_score)
+        i += 1
     run.log({"infer_table": vis_table})
-    average_fsim /= 5
+    average_fsim /= i
     wandb.log({"average_fsim": average_fsim})
 
 
