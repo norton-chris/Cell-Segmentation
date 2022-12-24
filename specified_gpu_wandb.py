@@ -165,7 +165,7 @@ def train_model(args):
     # model_artifact.add_file("h5_files/" + str(file_name) + ".h5")
     wandb.save("h5_files" + str(file_name) + ".h5")
 
-    run.log_artifact(model_artifact)
+    #run.log_artifact(model_artifact)
 
     ################################# EDIT THE LINE BELOW ###############################
     test = "TrainingDataset/data_subset/323_subset/output/test/"  ## EDIT THIS LINE
@@ -217,23 +217,23 @@ def train_model(args):
         if useLabels:
             lab = cv2.imread(test + "../Labels/" + path, -1)  # HERE'S THE LINE THE READS THE LABELS
 
-        batch_size = int(img.shape[0] / step) * int(img.shape[1] / step)
-        if not useLabels:
-            patcher_img = Patcher(img, batch_size=batch_size, input_shape=(dims, dims, 1), step=step)
-        else:
-            patcher_img = Patcher(img, lab, batch_size=batch_size, input_shape=(dims, dims, 1), step=step)
-        images, masks, row, col = patcher_img.patch_image()
-        print("1 image shape:", images.shape)
-        preds_test = model.predict(images, verbose=1)
-
-        # Predicting resized images
-        # resized = cv2.resize(img, (dims, dims))
-        # resize = resized.reshape(1, step, step, 1)
-
-        # Predicting full sized images
-        # preds_full_image = model.predict(resize)
-        preds_test = (preds_test > 0.2)  # .astype(np.uint8) # showing predictions with
-        # preds_full_image = (preds_full_image > 0.4).astype(np.uint8)
+        # batch_size = int(img.shape[0] / step) * int(img.shape[1] / step)
+        # if not useLabels:
+        #     patcher_img = Patcher(img, batch_size=batch_size, input_shape=(dims, dims, 1), step=step)
+        # else:
+        #     patcher_img = Patcher(img, lab, batch_size=batch_size, input_shape=(dims, dims, 1), step=step)
+        # images, masks, row, col = patcher_img.patch_image()
+        # print("1 image shape:", images.shape)
+        # preds_test = model.predict(images, verbose=1)
+        #
+        # # Predicting resized images
+        # # resized = cv2.resize(img, (dims, dims))
+        # # resize = resized.reshape(1, step, step, 1)
+        #
+        # # Predicting full sized images
+        # # preds_full_image = model.predict(resize)
+        # preds_test = (preds_test > 0.2)  # .astype(np.uint8) # showing predictions with
+        # # preds_full_image = (preds_full_image > 0.4).astype(np.uint8)
 
         # create figure
         fig = plt.figure(figsize=(10, 4))
@@ -254,7 +254,8 @@ def train_model(args):
         plt.axis('off')
         plt.title("label")
 
-        unpatcher = Random_unpatcher(img, img_name=test + path, model=model, input_shape=(dims, dims, 1), num_crop=500)
+        unpatcher = Random_unpatcher(img, img_name=test + path, model=model, input_shape=(dims, dims, 1), step=dims,
+                                     num_crop=500)
         full_pred_image = unpatcher.efficient_random_unpatch()
 
         # int_img = np.array(full_pred_image, dtype="uint8")

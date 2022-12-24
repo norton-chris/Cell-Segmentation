@@ -138,7 +138,7 @@ for path in os.listdir(test): # Loop over Images in Directory
     plt.axis('off')
     plt.title("label")
 
-    unpatcher = Random_unpatcher(img, img_name=test+path, model=model, input_shape=(dims, dims, 1), num_crop=500)
+    unpatcher = Random_unpatcher(img, img_name=test+path, model=model, input_shape=(dims, dims, 1), step=dims, num_crop=500)
     full_pred_image = unpatcher.efficient_random_unpatch()
 
     #cv2.imwrite("./inference/predictions/random_unpatch/" + "random_unpatch_prediction" + datetime.now().strftime("-%Y%m%d-%H:%M") + ".tif", full_pred_image)
