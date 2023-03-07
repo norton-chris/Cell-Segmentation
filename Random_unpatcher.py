@@ -27,6 +27,73 @@ class Random_unpatcher:
     def __getitem__(self, item):
         return self.unpatch_image()
 
+    def grid_unpatch(self, image, prediction_map, unpredicted_mask):
+
+        # Determine the size of the crops
+        crop_size = (self.input_shape[0], self.input_shape[1])
+
+        # Number of crops to take
+        num_crops = round((image.shape[0] / crop_size[0]) * (image.shape[1] / crop_size[1]))
+
+        # Iterate over the number of crops
+        x = 0
+        y = 0
+        i = 0
+        for _ in range(num_crops):
+            if not np.any(unpredicted_mask):
+                print("all pixels have been predicted in", i, "iterations.. breaking..")
+                break
+            # Crop the image
+            crop = image[x:x + crop_size[0], y:y + crop_size[1]]
+
+            # Resize the crop to the input size of the model
+            crop = cv2.resize(crop, (self.model.input_shape[1], self.model.input_shape[2]))
+
+            # Normalize the crop
+            crop = (crop / 255.0) - 0.5
+
+            # Add the batch dimension
+            crop = np.expand_dims(crop, axis=0)
+            crop = crop.reshape(1, self.step, self.step, self.num_classes)
+
+            # Perform inference on the crop
+            prediction = self.model.predict(crop)[0]
+
+            # Update the prediction map with the prediction for this crop
+            prediction = prediction.reshape(self.step, self.step)
+            prediction_map[x:x + crop_size[0], y:y + crop_size[1]] = prediction
+
+            # Update the unpredicted mask
+            unpredicted_mask[x:x + crop_size[0], y:y + crop_size[1]] = False
+            i += 1
+            cv2.imshow("prediction map", prediction_map)
+            indices = unpredicted_mask.astype(float)  # convert to an unsigned byte
+            cv2.imshow("prediction count map", indices)
+            cv2.waitKey(1)
+            # Select a random
+            # crop from the unpredicted pixels
+            # x, y = np.where(unpredicted_mask)
+            x = x + crop_size[0]
+            print("grip patch:", x, y)
+            print("image shape", image.shape)
+            if x + crop_size[0]-1 > image.shape[0]:
+                x = 0
+                y = y + crop_size[1]
+            if y + crop_size[1]-1 > image.shape[1]:
+                print("finished grid")
+                break
+            print("new patch:", x, y)
+        print("Completed grid sweep")
+            # x = x - (x % crop_size[0])
+            # y = y - (y % crop_size[1])
+
+
+
+        # Normalize the prediction map
+        prediction_map = (prediction_map - prediction_map.min()) / (prediction_map.max() - prediction_map.min())
+
+        return prediction_map, unpredicted_mask
+
     def random_unpatch(self):
         # Load the image
         image = cv2.imread(self.img_name, -1)
@@ -106,7 +173,7 @@ class Random_unpatcher:
 
         return prediction_map
 
-    def efficient_random_unpatch(self):
+    def efficient_random_unpatch_3(self):
         # Load the image
         image = cv2.imread(self.img_name, -1)
 
@@ -114,7 +181,7 @@ class Random_unpatcher:
         crop_size = (self.input_shape[0], self.input_shape[1])
 
         prediction_map = np.zeros(image.shape[:2], dtype=np.float32)
-        unpredicted_mask = np.ones(image.shape[:2], dtype=np.bool)
+        unpredicted_mask = np.ones(image.shape[:2], dtype=np.int8)
 
         # Number of crops to take
         num_crops = self.num_crop
@@ -125,10 +192,92 @@ class Random_unpatcher:
             if not np.any(unpredicted_mask):
                 print("all pixels have been predicted in", i, "iterations.. breaking..")
                 break
+            if round((num_crops / 2)) < i:
+                prediction_map, unpredicted_mask = self.grid_unpatch(image, prediction_map, unpredicted_mask)
+                continue
+            # Select a random crop from the unpredicted pixels
+            #x, y = np.where(unpredicted_mask)
+            x = random.randint(0, image.shape[0])
+            y = random.randint(0, image.shape[1])
+            print("patch:", x, y)
+            print("image shape", image.shape)
+            if x + crop_size[0] > image.shape[0]-1:
+                x = x - ((x + crop_size[0]) - image.shape[0])
+            if y + crop_size[1] > image.shape[1]-1:
+                y = y - ((y + crop_size[1]) - image.shape[1])
+            print("new patch:", x, y)
+            #x = x - (x % crop_size[0])
+            # y = y - (y % crop_size[1])
+
+            # while np.any(unpredicted_mask[x:x + crop_size[0], y:y + crop_size[1]]) > 5:
+            #     print("some are predicted with more than 5 predictions")
+            #     x = random.randint(0, image.shape[0])
+            #     y = random.randint(0, image.shape[1])
+            #     print("patch:", x, y)
+            #     print("image shape", image.shape)
+            #     if x + crop_size[0] > image.shape[0] - 1:
+            #         x = image.shape[0] - crop_size[0]
+            #     if y + crop_size[1] > image.shape[1] - 1:
+            #         y = image.shape[1] - crop_size[1]
+            #     print("new patch:", x, y)
+
+            # Crop the image
+            crop = image[x:x + crop_size[0], y:y + crop_size[1]]
+
+            # Resize the crop to the input size of the model
+            crop = cv2.resize(crop, (self.model.input_shape[1], self.model.input_shape[2]))
+
+            # Normalize the crop
+            crop = (crop / 255.0) - 0.5
+
+            # Add the batch dimension
+            crop = np.expand_dims(crop, axis=0)
+            crop = crop.reshape(1, self.step, self.step, self.num_classes)
+
+            # Perform inference on the crop
+            prediction = self.model.predict(crop)[0]
+
+            # Update the prediction map with the prediction for this crop
+            prediction = prediction.reshape(self.step, self.step)
+            prediction_map[x:x + crop_size[0], y:y + crop_size[1]] = prediction
+
+            # Update the unpredicted mask
+            unpredicted_mask[x:x + crop_size[0], y:y + crop_size[1]] = False
+            i += 1
+            cv2.imshow("prediction map", prediction_map)
+            indices = unpredicted_mask.astype(float)  # convert to an unsigned byte
+            cv2.imshow("prediction count map", indices)
+            cv2.waitKey(1)
+
+        # Normalize the prediction map
+        prediction_map = (prediction_map - prediction_map.min()) / (prediction_map.max() - prediction_map.min())
+
+
+        return prediction_map
+
+    def efficient_random_unpatch(self):
+        # Load the image
+        image = cv2.imread(self.img_name, -1)
+
+        # Determine the size of the crops
+        crop_size = (self.input_shape[0], self.input_shape[1])
+
+        prediction_map = np.zeros(image.shape[:2], dtype=np.float32)
+        unpredicted_mask = np.zeros(image.shape[:2], dtype=np.bool)
+
+        # Number of crops to take
+        num_crops = self.num_crop
+
+        # Iterate over the number of crops
+        i = 0
+        for _ in range(num_crops):
+            if np.all(unpredicted_mask):
+                print("all pixels have been predicted in", i, "iterations.. breaking..")
+                break
             # Select a random crop from the unpredicted pixels
             x, y = np.where(unpredicted_mask)
-            x = x[random.randint(0, len(x) - 1)]
-            y = y[random.randint(0, len(y) - 1)]
+            x = x[random.randint(0, len(x))]
+            y = y[random.randint(0, len(y))]
             print("patch:", x, y)
             x = x - (x % crop_size[0])
             y = y - (y % crop_size[1])
@@ -154,7 +303,7 @@ class Random_unpatcher:
             prediction_map[x:x + crop_size[0], y:y + crop_size[1]] = prediction
 
             # Update the unpredicted mask
-            unpredicted_mask[x:x + crop_size[0], y:y + crop_size[1]] = False
+            unpredicted_mask[x:x + crop_size[0], y:y + crop_size[1]] = True
             i += 1
 
         # Normalize the prediction map

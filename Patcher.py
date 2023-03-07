@@ -1,6 +1,8 @@
 import numpy as np
 import cv2
 
+from tiler import tiler
+
 class Patcher:
     def __init__(self,
                  img,
@@ -64,3 +66,8 @@ class Patcher:
             return images, masks, max_x_pixel, max_y_pixel
         else:
             return images, max_x_pixel, max_y_pixel
+
+    def tilerPatch(self, img=self.img, overlap=0.2):
+        t = tiler(img, img.shape[0], img.shape[1], overlap)
+        out = t.tile(img, img.shape[0], img.shape[1], overlap)
+        return out

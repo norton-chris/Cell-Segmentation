@@ -293,7 +293,7 @@ def train_model(args):
         #vis_table.add_data(fsim_score)
         i += 1
     run.log({"infer_table": vis_table})
-    average_fsim /= i
+    average_fsim /= i+1
     wandb.log({"average_fsim": average_fsim})
 
 

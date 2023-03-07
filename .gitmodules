@@ -1,0 +1,3 @@
+[submodule "pyTiler"]
+	path = pyTiler
+	url = https://github.com/ebmichel/pyTiler.git
