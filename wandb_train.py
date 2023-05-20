@@ -111,6 +111,11 @@ def train_model():
                            input_dim=dims,
                            learning_rate=args.learning_rate,
                            num_classes=1)
+    elif args.model == "cbam":
+        unet = Models.UNetPlusPlus_CBAM(n_filter=args.n_filter,
+                           input_dim=dims,
+                           learning_rate=args.learning_rate,
+                           num_classes=1)
     else:
         print("Error: No model set.. exiting..")
         exit(-1)
@@ -253,7 +258,7 @@ if __name__ == "__main__":
     #     p.start()
     #     p.join()
 
-    ray.init(num_cpus=args.batch_size, num_gpus=3)
+    ray.init(num_cpus=args.batch_size, num_gpus=1)
     #ray.get([train_model.remote(args) for _ in range(2)]) # run 2 jobs on one gpu
 
     train_model(args)

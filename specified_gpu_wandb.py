@@ -34,7 +34,7 @@ import cv2
 import matplotlib.pyplot as plt
 import image_similarity_measures
 from image_similarity_measures.quality_metrics import rmse, psnr, fsim
-
+import multiprocessing
 
 # Owned
 import Batch_loader
@@ -52,6 +52,8 @@ __status__ = "Dev"
 # {code}
 mixed_precision.set_global_policy('mixed_float16')
 os.environ['JOBLIB_TEMP_FOLDER'] = '/tmp'
+num_cores = multiprocessing.cpu_count()
+print("num cores:", num_cores)
 
 def train_model(args):
     id = wandb.util.generate_id()
@@ -113,6 +115,14 @@ def train_model(args):
                            dropout_rate=args.dropout_rate,
                            activation=args.activation,
                            kernel_size=args.kernel_size)
+    elif args.model == "cbam":
+        unet = Models.UNetPlusPlus_CBAM(n_filter=args.n_filter,
+                           input_dim=dims,
+                           learning_rate=args.learning_rate,
+                           num_classes=1,
+                           dropout_rate=args.dropout_rate,
+                           activation=args.activation,
+                           kernel_size=args.kernel_size)
     else:
         print("Error: No model set.. exiting..")
         exit(-1)
@@ -147,7 +157,7 @@ def train_model(args):
     print("starting training")
 
     results = model.fit(training_generator, validation_data=validation_generator,
-                                     epochs=args.epochs, use_multiprocessing=False, workers=4,
+                                     epochs=args.epochs, use_multiprocessing=False, workers=num_cores,
                                      callbacks=[wandb.save("model.h5"), checkpointer, tensorboard_callback,
                                                 WandbCallback()])  # TqdmCallback(verbose=2), earlystopper
     print("results:", results)
@@ -254,9 +264,21 @@ def train_model(args):
         plt.axis('off')
         plt.title("label")
 
-        unpatcher = Random_unpatcher(img, img_name=test + path, model=model, input_shape=(dims, dims, 1), step=dims,
-                                     num_crop=500)
-        full_pred_image = unpatcher.efficient_random_unpatch()
+        batch_size = int(img.shape[0] / step) * int(img.shape[1] / step)
+        patcher = Patcher(img=img, lab=lab, batch_size=1, input_shape=(dims, dims, 1), step=dims, num_classes=1)
+
+        # get the patched images
+        images, masks, _, _ = patcher.patch_overlap(visualize=False)
+
+        # predict on patches
+        preds_test = model.predict(images, verbose=1)
+
+        print("Dimensions of preds_test: ", preds_test.shape)
+
+        preds_test = (preds_test > 0.8)
+
+        unpatcher = Unpatcher(img, preds_test, test + path, step=dims)
+        full_pred_image = unpatcher.unpatch_image2()
 
         # int_img = np.array(full_pred_image, dtype="uint8")
         # grey = int_img[:, :, 0]

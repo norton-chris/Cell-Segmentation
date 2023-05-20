@@ -87,58 +87,41 @@ i = 0
 print("total image shape:", images.shape)
 #run = wandb.init(project='Cell-Segmentation', entity="nort")
 #vis_table = wandb.Table(columns=["image"])
-for path in random.sample(os.listdir(test), 5): # Loop over Images in Directory
+for path in random.sample(os.listdir(test), 5):  # Loop over Images in Directory
     print("loop", test + path)
     img = cv2.imread(test + path, -1).astype("float32")
     if useLabels:
-        lab = cv2.imread(test + "../Labels/" + path, -1) # HERE'S THE LINE THE READS THE LABELS
+        lab = cv2.imread(test + "../Labels/" + path, -1)  # HERE'S THE LINE THE READS THE LABELS
 
-    batch_size = int(img.shape[0]/step) * int(img.shape[1]/step)
-    if not useLabels:
-        patcher_img = Patcher(img, batch_size=batch_size, input_shape=(dims, dims, 1), step=step)
-    else:
-        patcher_img = Patcher(img, lab, batch_size=batch_size, input_shape=(dims, dims, 1), step=step)
-    images, masks, row, col = patcher_img.patch_image()
-    print("1 image shape:", images.shape)
+    batch_size = int(img.shape[0] / step) * int(img.shape[1] / step)
+    patcher = Patcher(img=img, lab=lab, batch_size=1, input_shape=(dims, dims, 1), step=dims, num_classes=1)
+
+    # get the patched images
+    images, masks, _, _ = patcher.patch_overlap(visualize=True)
+
+    # predict on patches
     preds_test = model.predict(images, verbose=1)
 
-    # Predicting resized images
-    #resized = cv2.resize(img, (dims, dims))
-    #resize = resized.reshape(1, step, step, 1)
+    print("Dimensions of preds_test: ", preds_test.shape)
 
-    # Predicting full sized images
-    #preds_full_image = model.predict(resize)
-    preds_test = (preds_test > 0.7) #.astype(np.uint8) # showing predictions with
-    #preds_full_image = (preds_full_image > 0.4).astype(np.uint8)
+    preds_test = (preds_test > 0.8)
 
+    # if useLabels:
+    #     labels = labels.reshape(labels.shape[0], labels.shape[1], 1)
 
-    lab = lab.reshape(lab.shape[0], lab.shape[1], 1)
-    #lab = normalize_image(lab)
-    #lab = lab.astype(np.uint8)
-    print("lab:", lab.dtype)
-
-
-    # create figure
     fig = plt.figure(figsize=(10, 4))
-
     fig.add_subplot(1, 3, 1)
-
-    # showing image
     plt.imshow(img)
     plt.axis('off')
     plt.title("image")
 
     fig.add_subplot(1, 3, 2)
-
-    # showing image
     if useLabels:
         plt.imshow(lab)
-        cv2.imwrite("./inference/predictions/" + "label" + datetime.now().strftime("-%Y%m%d-%H:%M") + ".tif", lab)
+        #cv2.imwrite("./inference/predictions/" + "label" + datetime.now().strftime("-%Y%m%d-%H:%M") + ".tif", lab)
     plt.axis('off')
     plt.title("label")
 
-    # unpatcher = Unpatcher(img, preds_test, img_name=test+path)
-    # full_pred_image = unpatcher.unpatch_image()
     unpatcher = Unpatcher(img, preds_test, test + path)
     full_pred_image = unpatcher.unpatch_image2()
 
@@ -165,6 +148,16 @@ for path in random.sample(os.listdir(test), 5): # Loop over Images in Directory
     plt.savefig('data.png')
     plt.show()
     plt.close()
+
+    def single_channel_to_three_channel(img):
+        return np.repeat(img[..., np.newaxis], 3, axis=-1)
+
+    # Convert single-channel images to three-channel images if necessary
+    if full_pred_image.ndim == 2:
+        full_pred_image = single_channel_to_three_channel(full_pred_image)
+
+    if lab.ndim == 2:
+        lab = single_channel_to_three_channel(lab)
 
     fsim_score = fsim(lab, full_pred_image)
     average_fsim += fsim_score
