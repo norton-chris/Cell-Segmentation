@@ -44,6 +44,7 @@ from Random_patcher import Random_patcher
 from Unpatcher import Unpatcher
 from Random_unpatcher import Random_unpatcher
 import Scoring
+from WandB_Training_Visualization import WandbValidationVisualization
 __author__ = "Chris Norton"
 __maintainer__ = "Chris Norton"
 __email__ = "cnorton@mtu.edu"
@@ -54,6 +55,26 @@ mixed_precision.set_global_policy('mixed_float16')
 os.environ['JOBLIB_TEMP_FOLDER'] = '/tmp'
 num_cores = multiprocessing.cpu_count()
 print("num cores:", num_cores)
+
+
+def normalize_image(input_block):
+    block = input_block.copy()
+    vol_max, vol_min = block.max(), block.min()
+    if vol_max != vol_min:
+        block = (block - vol_min) / (vol_max - vol_min)
+    return block
+
+def load_images_from_directory(directory):
+    images = []
+    for filename in os.listdir(directory):
+        if filename.endswith('.tif'):
+            img_path = os.path.join(directory, filename)
+            img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)  # Load as 16-bit image
+            img = img.astype('float32')  # Convert to float to prepare for normalization
+            img = normalize_image(img)  # Apply your normalization function
+            img = np.expand_dims(img, axis=-1)  # Add channel dimension if needed
+            images.append(img)
+    return np.array(images)
 
 def train_model(args):
     id = wandb.util.generate_id()
@@ -166,10 +187,15 @@ def train_model(args):
     validation_generator = Batch_loader.BatchLoad(val, batch_size = args.batch_size, dim=dims, step=step, augment=True, validate=False, multiple_sizes=args.multiple_sizes)
     print("starting training")
 
+    val_images = load_images_from_directory(val + "Images")
+    val_labels = load_images_from_directory(val + "Labels")
+
+    val_viz_callback = WandbValidationVisualization(val_images, val_labels, frequency=1)
+
     results = model.fit(training_generator, validation_data=validation_generator,
                                      epochs=args.epochs, use_multiprocessing=False, workers=num_cores,
                                      callbacks=[wandb.save("model.h5"), checkpointer, tensorboard_callback,
-                                                WandbCallback()])  # TqdmCallback(verbose=2), earlystopper
+                                                WandbCallback(), val_viz_callback])  # TqdmCallback(verbose=2), earlystopper
     print("results:", results)
     print("Evaluate:")
     result = model.evaluate(training_generator)
@@ -189,12 +215,6 @@ def train_model(args):
 
     #run.log_artifact(model_artifact)
 
-    ################################# EDIT THE LINE BELOW ###############################
-    test = "TrainingDataset/data_subset/323_subset/output/test/"  ## EDIT THIS LINE
-    useLabels = True  # set to true if you have a folder called Labels inside test (the above variable)
-
-    # useLabels can be useful for seeing the accuracy.
-    ################################# EDIT THE LINE ABOVE ###############################
 
     gpus = tf.config.experimental.list_physical_devices('GPU')
     if gpus:
@@ -208,126 +228,72 @@ def train_model(args):
             # Memory growth must be set before GPUs have been initialized
             print(e)
 
-    #################### MAIN ************************
-    test = test + "Images/"  # Uncomment if you have a folder inside called Images
-    dims = args.input_shape
-    step = args.input_shape
-    # Predict on patches
-    while True: # try loop
-        try:
-            model = load_model(model_file,
+
+    # After training is complete, evaluate on the test set
+    print("Evaluating on test set...")
+    test_dir = "TrainingDataset/data_subset/323_subset/output/test/Images/"  # Path to test images
+    useLabels = True  # set to true if you have a folder called Labels inside test (the above variable)
+    model_file = "h5_files/" + str(file_name) + ".h5"  # Path to the saved model
+
+    # Load the trained model
+    model = load_model(model_file,
                        custom_objects={'dice_plus_bce_loss': Scoring.dice_plus_bce_loss,
                                        'dice_scoring': Scoring.dice_scoring})
-            break
-        except Exception as e:
-            time.sleep(10)
-            print(e)
-            print("model_file:", model_file)
-            continue
-    # load test patches
-    images = np.zeros((len(os.listdir(test)), dims, dims, 1), dtype="float32")  # define the numpy array for the batch
-    masks = np.zeros((len(os.listdir(test)), dims, dims, 1), dtype=bool)
-    resize = np.zeros((1, dims, dims, 1), dtype=int)
 
-    average_fsim = 0
-    i = 0
-    print("total image shape:", images.shape)
-    vis_table = wandb.Table(columns=["image"])
-    for path in os.listdir(test):  # Loop over Images in Directory
-        print("loop", test + path)
-        img = cv2.imread(test + path, -1).astype("float32")
+    total_fsim_score = 0
+    num_images = 0
+
+    # Iterate over the test images
+    for img_name in os.listdir(test_dir):
+        img_path = os.path.join(test_dir, img_name)
+        img = cv2.imread(img_path, -1).astype("float32")
+        img = normalize_image(img)  # Normalize the image
+        img = img.reshape(1, *img.shape, 1)  # Add batch dimension
+
+        # Predict on the full image
+        preds = model.predict(img)
+
+        # Apply a confidence threshold to the predictions
+        preds_thresholded = (preds > 0.5).astype(np.uint8)
+
+        # Remove the batch dimension from the predictions
+        preds_thresholded_reshape = np.squeeze(preds_thresholded, axis=0)
+
+        # Optionally, load the corresponding label for accuracy assessment
         if useLabels:
-            lab = cv2.imread(test + "../Labels/" + path, -1)  # HERE'S THE LINE THE READS THE LABELS
+            label_path = os.path.join(test_dir, "../Labels/", img_name)
+            label = cv2.imread(label_path, -1)
+            label = label.reshape(*label.shape, 1)  # Add channel dimension
 
-        # batch_size = int(img.shape[0] / step) * int(img.shape[1] / step)
-        # if not useLabels:
-        #     patcher_img = Patcher(img, batch_size=batch_size, input_shape=(dims, dims, 1), step=step)
-        # else:
-        #     patcher_img = Patcher(img, lab, batch_size=batch_size, input_shape=(dims, dims, 1), step=step)
-        # images, masks, row, col = patcher_img.patch_image()
-        # print("1 image shape:", images.shape)
-        # preds_test = model.predict(images, verbose=1)
-        #
-        # # Predicting resized images
-        # # resized = cv2.resize(img, (dims, dims))
-        # # resize = resized.reshape(1, step, step, 1)
-        #
-        # # Predicting full sized images
-        # # preds_full_image = model.predict(resize)
-        # preds_test = (preds_test > 0.2)  # .astype(np.uint8) # showing predictions with
-        # # preds_full_image = (preds_full_image > 0.4).astype(np.uint8)
-
-        # create figure
-        fig = plt.figure(figsize=(10, 4))
-
-        fig.add_subplot(1, 3, 1)
-
-        # showing image
-        plt.imshow(img)
-        plt.axis('off')
-        plt.title("image")
-
-        fig.add_subplot(1, 3, 2)
-
-        # showing image
+        # Calculate FSIM score
         if useLabels:
-            plt.imshow(lab)
-        lab = lab.reshape(lab.shape[0], lab.shape[1], 1)
+            fsim_score = fsim(label, preds_thresholded_reshape)
+            total_fsim_score += fsim_score
+            num_images += 1
+
+        # Visualization
+        plt.figure(figsize=(12, 4))
+        plt.subplot(1, 3, 1)
+        plt.imshow(img[0, ..., 0], cmap='gray')
+        plt.title("Original Image")
         plt.axis('off')
-        plt.title("label")
 
-        batch_size = int(img.shape[0] / step) * int(img.shape[1] / step)
-        patcher = Patcher(img=img, lab=lab, batch_size=1, input_shape=(dims, dims, 1), step=dims, num_classes=1)
+        if useLabels:
+            plt.subplot(1, 3, 2)
+            plt.imshow(label[..., 0], cmap='gray')
+            plt.title("Ground Truth")
+            plt.axis('off')
 
-        # get the patched images
-        images, masks, _, _ = patcher.patch_overlap(visualize=False)
-
-        # predict on patches
-        preds_test = model.predict(images, verbose=1)
-
-        print("Dimensions of preds_test: ", preds_test.shape)
-
-        preds_test = (preds_test > 0.8)
-
-        unpatcher = Unpatcher(img, preds_test, test + path, step=dims)
-        full_pred_image = unpatcher.unpatch_image2()
-
-        # int_img = np.array(full_pred_image, dtype="uint8")
-        # grey = int_img[:, :, 0]
-        # ret, thresh = cv2.threshold(grey, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        # kernel = np.ones((3, 3), np.uint8)
-        # remove_noise = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel, iterations=2)
-
-        fig.add_subplot(1, 3, 3)
-        plt.imshow(full_pred_image)
-        # plt.imshow(preds_full_image)
+        plt.subplot(1, 3, 3)
+        plt.imshow(preds_thresholded[0, ..., 0], cmap='gray')
+        plt.title(f"Prediction - FSIM: {fsim_score:.4f}")
         plt.axis('off')
-        plt.title("prediction")
 
-        plt.subplots_adjust(wspace=.05, hspace=.05, left=.01, right=.99, top=.99, bottom=.01)
-        full_pred_image = full_pred_image.reshape(full_pred_image.shape[0], full_pred_image.shape[1], 1)
-        fsim_score = fsim(lab, full_pred_image)
-        average_fsim += fsim_score
-        print(fsim_score)
-        text = "fsim_score: " + str(fsim_score)
-        fig.text(.5, .05, text, ha='center')
+        plt.show()
 
-        plt.savefig('data.png')
-        #plt.show()
-        plt.close()
-
-        fsim_score = fsim(lab, full_pred_image)
-        average_fsim += fsim_score
-
-        #plt.show()
-        out = cv2.imread('data.png')
-        img = wandb.Image(out)
-        # img = wandb.Image(PIL.Image.fromarray(out.get_image()[:, :, ::-1]))
-        vis_table.add_data(img)
-        #vis_table.add_data(fsim_score)
-        i += 1
-    run.log({"infer_table": vis_table})
-    average_fsim /= i+1
+    # Calculate and print the average FSIM score
+    average_fsim = total_fsim_score / num_images if num_images > 0 else 0
+    print(f"Average FSIM Score: {average_fsim}")
     wandb.log({"average_fsim": average_fsim})
 
 

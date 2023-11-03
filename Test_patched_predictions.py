@@ -73,7 +73,7 @@ test = test + "Images/" # Uncomment if you have a folder inside called Images
 dims = 512
 step = 512
 # Predict on patches
-model_file = 'h5_files/model-best-UNet++512.h5'
+model_file = 'h5_files/unet_multi512shp16Flt0.0lr1000E_2imgs-20231103-08:04.h5'
 model = load_model(model_file,
                   custom_objects = { 'dice_plus_bce_loss': Scoring.dice_plus_bce_loss,
                                     'dice_scoring': Scoring.dice_scoring})

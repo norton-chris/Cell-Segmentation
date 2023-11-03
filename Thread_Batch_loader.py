@@ -24,13 +24,32 @@ def normalize_image(input_block):
 
 @ray.remote(num_returns=2)
 def thread_batch_loader(batch_paths, image_path, label_path, patching, dim, step, augment):
+    # Ensure batch_paths is a list before selecting a path
+    if not isinstance(batch_paths, list):
+        batch_paths = [batch_paths]
     path = random.choice(batch_paths)
-    if not os.path.isfile(image_path + path):
-        print("error: " + image_path + path + " does not exist")
-    if not os.path.isfile(label_path + path):
-        print("error: " + label_path + path + " does not exist")
-    img = cv2.imread(image_path + path, -1).astype("float32")
-    lab = cv2.imread(label_path + path, -1)
+    full_image_path = os.path.join(image_path, path)
+    full_label_path = os.path.join(label_path, path)
+
+    # Check if the image file exists
+    if not os.path.isfile(full_image_path):
+        print(f"error: {full_image_path} does not exist")
+        return None, None  # Return None to indicate the error
+
+    # Check if the label file exists
+    if not os.path.isfile(full_label_path):
+        print(f"error: {full_label_path} does not exist")
+        return None, None  # Return None to indicate the error
+    # Read the image and label files
+    img = cv2.imread(full_image_path, -1)
+    if img is None:
+        raise ValueError(f"Failed to read the image file: {full_image_path}")
+    img = img.astype("float32")
+
+    lab = cv2.imread(full_label_path, -1)
+    if lab is None:
+        raise ValueError(f"Failed to read the label file: {full_label_path}")
+
     ret, lab = cv2.threshold(lab, 100, 255, cv2.THRESH_BINARY)
 
     if patching:

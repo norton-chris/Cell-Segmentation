@@ -133,7 +133,6 @@ def train_model():
         try:
             model = keras.models.load_model(wandb.restore('model.h5').name)
         except:
-
             with strategy.scope():
                 # Model building/compiling need to be within `strategy.scope()`.
                 #multi_worker_model = build_and_compile_cnn_model()

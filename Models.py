@@ -359,6 +359,92 @@ class UNET(object):
         # model.summary()
         return model
 
+class UNET_multiple_image_size(object):
+
+    def __init__(self, n_filter=16,
+                 input_dim=(512, 512, 1),
+                 learning_rate=3e-5, num_classes=1,
+                 dropout_rate=0.25,
+                 activation="selu",
+                 kernel_size=3,
+                 epochs=50000,
+                 batch_size=2):
+        self.n_filter = n_filter
+        self.input = Input((None, None, 1))
+        self.lr = learning_rate
+        self.num_classes = num_classes
+        self.dropout_rate = dropout_rate
+        self.activation = activation
+        self.kernel_size = kernel_size
+        self.epochs = epochs
+        self.batch_size = batch_size
+
+    def create_model(self):
+        # Level 1
+        skip1 = convolution(self.n_filter, kernel_size=self.kernel_size,
+                            drop_rate=self.dropout_rate, activation=self.activation)(self.input)
+        # Conv2D(self.n_filter, self.kernel_size, padding='same', use_bias=not use_batchnorm)(x)
+        down1 = MaxPooling2D(pool_size=[2, 2])(skip1)
+
+        # level 2
+        skip2 = convolution(self.n_filter * 2, kernel_size=self.kernel_size,
+                            drop_rate=self.dropout_rate, activation=self.activation)(down1)
+        down2 = MaxPooling2D(pool_size=[2, 2])(skip2)
+
+        # level 3
+        skip3 = convolution(self.n_filter * 4, kernel_size=self.kernel_size,
+                            drop_rate=self.dropout_rate, activation=self.activation)(down2)
+        down3 = MaxPooling2D(pool_size=[2, 2])(skip3)
+
+        # level 4
+        skip4 = convolution(self.n_filter * 8, kernel_size=self.kernel_size,
+                            drop_rate=self.dropout_rate, activation=self.activation)(down3)
+        down4 = MaxPooling2D(pool_size=[2, 2])(skip4)
+
+        # level 5. Deepest
+        l5 = convolution(self.n_filter * 16, kernel_size=self.kernel_size,
+                         drop_rate=self.dropout_rate, activation=self.activation)(down4)
+
+        # level 4
+        concat4 = concatenate([UpSampling2D(size=[2, 2])(l5), skip4])
+        l4 = convolution(self.n_filter * 8, kernel_size=self.kernel_size, drop_rate=self.dropout_rate,
+                         activation=self.activation)(concat4)
+
+        # level 3
+        concat3 = concatenate([UpSampling2D(size=[2, 2])(l4), skip3])
+        l3 = convolution(self.n_filter * 4, kernel_size=self.kernel_size, drop_rate=self.dropout_rate,
+                         activation=self.activation)(concat3)
+
+        # level 2
+        concat2 = concatenate([UpSampling2D(size=[2, 2])(l3), skip2])
+        l2 = convolution(self.n_filter * 2, kernel_size=self.kernel_size, drop_rate=self.dropout_rate,
+                         activation=self.activation)(concat2)
+
+        # level 1
+        concat1 = concatenate([UpSampling2D(size=[2, 2])(l2), skip1])
+        l1 = convolution(self.n_filter, kernel_size=self.kernel_size, drop_rate=self.dropout_rate,
+                         activation=self.activation)(concat1)
+
+        if self.num_classes == 1:
+            output = Conv2D(1, [1, 1], activation='sigmoid')(l1)
+        else:
+            output = Conv2D(num_classes, [1, 1], activation='softmax')(l1)
+
+        model = Model(inputs=self.input, outputs=output)
+
+        lr_schedule = ExponentialDecay(
+            initial_learning_rate=self.lr,
+            decay_steps=10000,
+            decay_rate=0.9)
+        opt = Adam(learning_rate=lr_schedule)
+        opt = tf.keras.mixed_precision.LossScaleOptimizer(opt)
+        if self.num_classes == 1:
+            model.compile(optimizer=opt, loss=Scoring.dice_plus_bce_loss, metrics=Scoring.dice_scoring)
+        else:
+            model.compile(optimizer=opt, loss=Scoring.dice_plus_cce_loss, metrics=Scoring.dice_scoring)
+        # model.summary()
+        return model
+
 class UNetPlusPlus_CBAM(object):
 
     def __init__(self, n_filter=16,

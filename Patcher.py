@@ -15,7 +15,8 @@ class Patcher:
                  num_classes=1,
                  overlap=0.2,
                  image=True,
-                 visualize=False):
+                 visualize=False,
+                 multiple_sizes=False):
         self.img = img
         self.lab = lab
         self.batch_size = batch_size
@@ -25,6 +26,17 @@ class Patcher:
         self.overlap = overlap
         self.image = image
         self.visualize = visualize
+        self.multiple_sizes = multiple_sizes
+
+    @staticmethod
+    def is_divisible_by_pooling_factor(dim, levels=4, factor=2):
+        h, w = dim
+        for _ in range(levels):
+            if h % factor != 0 or w % factor != 0:
+                return False
+            h //= factor
+            w //= factor
+        return True
 
 
     def __getitem__(self, item):
@@ -172,6 +184,9 @@ class Patcher:
                 for i in range(block.shape[-1]):
                     block[:, :, i] = (block[:, :, i] - vol_min) / (vol_max - vol_min)
             return block
+
+        if self.multiple_sizes and not self.is_divisible_by_pooling_factor((self.step, self.step)):
+            raise ValueError("Patch dimensions must be divisible by the pooling factor.")
         max_x_pixel = self.img.shape[0]
         max_y_pixel = self.img.shape[1]
         # batch_size = int((float(max_x_pixel[0]) / float(self.step)) * (float(max_y_pixel[0]) / float(self.step)))
