@@ -136,6 +136,9 @@ def train_model(args):
             num_classes=1,
             dropout_rate=args.dropout_rate,
             activation=args.activation,
+            depth=args.depth,
+            use_batchnorm=args.use_batchnorm,
+            dilation_rate=args.dilation_rate,
             kernel_size=args.kernel_size
         )
     elif args.model == "unet++":
@@ -176,15 +179,16 @@ def train_model(args):
 
     tf.config.run_functions_eagerly(True)
 
-    #earlystopper = EarlyStopping(patience=15, verbose=1)
+    earlystopper = EarlyStopping(patience=15, verbose=1)
     checkpointer = ModelCheckpoint('h5_files/' + file_name + '.h5',
                                    verbose=0, monitor="val_dice_scoring", mode="max", save_best_only=True)
 
     log_dir = "logs/fit/" + file_name
     tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
-    training_generator = Batch_loader.BatchLoad(train, batch_size = args.batch_size, dim=dims, step=step,
+    training_generator = Batch_loader.BatchLoad(train, batch_size=args.batch_size, dim=dims, step=step,
                                                 patching=args.patching, augment=args.augment, multiple_sizes=args.multiple_sizes)
-    validation_generator = Batch_loader.BatchLoad(val, batch_size = args.batch_size, dim=dims, step=step, augment=True, validate=False, multiple_sizes=args.multiple_sizes)
+    validation_generator = Batch_loader.BatchLoad(val, batch_size=args.batch_size, dim=dims, step=step, augment=False,
+                                                  validate=True, multiple_sizes=args.multiple_sizes)
     print("starting training")
 
     val_images = load_images_from_directory(val + "Images")
@@ -290,6 +294,7 @@ def train_model(args):
         plt.axis('off')
 
         plt.show()
+        plt.close(fig)
 
     # Calculate and print the average FSIM score
     average_fsim = total_fsim_score / num_images if num_images > 0 else 0
@@ -367,12 +372,29 @@ if __name__ == "__main__":
         help="Activation function to use"
     )
     parser.add_argument(
+        "--use_batchnorm",
+        type=str,
+        default="True",
+        help="Batch Normalization"
+    )
+    parser.add_argument(
+        "--depth",
+        type=str,
+        default="5",
+        help="Depth on UNET (only supported on unet-multi"
+    )
+    parser.add_argument(
         "--kernel_size",
         type=int,
         default=3,
         help="Size of kernel"
     )
-
+    parser.add_argument(
+        "--dilation_rate",
+        type=int,
+        default=1,
+        help="Size of kernel"
+    )
     parser.add_argument(
         "--multiple_sizes",
         type=bool,

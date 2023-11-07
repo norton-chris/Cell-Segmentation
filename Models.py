@@ -32,9 +32,10 @@ import Scoring
 
 
 def convolution(filters, kernel_size, use_batchnorm=True, use_dropout=True, drop_rate=0.05,
-                conv_name='conv', bn_name='bn', activation='selu', stride=1):
+                conv_name='conv', bn_name='bn', activation='selu', stride=1, dilation_rate=1):
     def layer(x):
-        x = Conv2D(filters, kernel_size, padding='same', use_bias=not use_batchnorm, strides=stride)(x)
+        x = Conv2D(filters, kernel_size, padding='same', use_bias=not use_batchnorm, strides=stride,
+                   dilation_rate=dilation_rate)(x)
         if use_batchnorm:
             x = BatchNormalization()(x)
         if use_dropout:
@@ -361,14 +362,9 @@ class UNET(object):
 
 class UNET_multiple_image_size(object):
 
-    def __init__(self, n_filter=16,
-                 input_dim=(512, 512, 1),
-                 learning_rate=3e-5, num_classes=1,
-                 dropout_rate=0.25,
-                 activation="selu",
-                 kernel_size=3,
-                 epochs=50000,
-                 batch_size=2):
+    def __init__(self, n_filter=16, input_dim=(512, 512, 1), learning_rate=3e-5, num_classes=1, dilation_rate=1,
+                 dropout_rate=0.25, activation="selu", kernel_size=3, epochs=50000, batch_size=2, depth=4,
+                 use_batchnorm=True):
         self.n_filter = n_filter
         self.input = Input((None, None, 1))
         self.lr = learning_rate
@@ -378,57 +374,35 @@ class UNET_multiple_image_size(object):
         self.kernel_size = kernel_size
         self.epochs = epochs
         self.batch_size = batch_size
+        self.depth = depth
+        self.dilation_rate = dilation_rate
+        self.use_batchnorm = use_batchnorm
 
     def create_model(self):
-        # Level 1
-        skip1 = convolution(self.n_filter, kernel_size=self.kernel_size,
-                            drop_rate=self.dropout_rate, activation=self.activation)(self.input)
-        # Conv2D(self.n_filter, self.kernel_size, padding='same', use_bias=not use_batchnorm)(x)
-        down1 = MaxPooling2D(pool_size=[2, 2])(skip1)
+        x = self.input
+        skips = []
+        self.depth = int(self.depth)  # not sure why this is a str, converting to int
+        for d in range(self.depth):
+            x = convolution(self.n_filter * (2 ** d), kernel_size=self.kernel_size,
+                            drop_rate=self.dropout_rate, activation=self.activation,
+                            use_batchnorm=self.use_batchnorm, dilation_rate=self.dilation_rate)(x)
+            skips.append(x)
+            x = MaxPooling2D(pool_size=[2, 2])(x)
 
-        # level 2
-        skip2 = convolution(self.n_filter * 2, kernel_size=self.kernel_size,
-                            drop_rate=self.dropout_rate, activation=self.activation)(down1)
-        down2 = MaxPooling2D(pool_size=[2, 2])(skip2)
+        x = convolution(self.n_filter * (2 ** self.depth), kernel_size=self.kernel_size,
+                        drop_rate=self.dropout_rate, activation=self.activation, use_batchnorm=self.use_batchnorm,
+                        dilation_rate=self.dilation_rate)(x)
 
-        # level 3
-        skip3 = convolution(self.n_filter * 4, kernel_size=self.kernel_size,
-                            drop_rate=self.dropout_rate, activation=self.activation)(down2)
-        down3 = MaxPooling2D(pool_size=[2, 2])(skip3)
-
-        # level 4
-        skip4 = convolution(self.n_filter * 8, kernel_size=self.kernel_size,
-                            drop_rate=self.dropout_rate, activation=self.activation)(down3)
-        down4 = MaxPooling2D(pool_size=[2, 2])(skip4)
-
-        # level 5. Deepest
-        l5 = convolution(self.n_filter * 16, kernel_size=self.kernel_size,
-                         drop_rate=self.dropout_rate, activation=self.activation)(down4)
-
-        # level 4
-        concat4 = concatenate([UpSampling2D(size=[2, 2])(l5), skip4])
-        l4 = convolution(self.n_filter * 8, kernel_size=self.kernel_size, drop_rate=self.dropout_rate,
-                         activation=self.activation)(concat4)
-
-        # level 3
-        concat3 = concatenate([UpSampling2D(size=[2, 2])(l4), skip3])
-        l3 = convolution(self.n_filter * 4, kernel_size=self.kernel_size, drop_rate=self.dropout_rate,
-                         activation=self.activation)(concat3)
-
-        # level 2
-        concat2 = concatenate([UpSampling2D(size=[2, 2])(l3), skip2])
-        l2 = convolution(self.n_filter * 2, kernel_size=self.kernel_size, drop_rate=self.dropout_rate,
-                         activation=self.activation)(concat2)
-
-        # level 1
-        concat1 = concatenate([UpSampling2D(size=[2, 2])(l2), skip1])
-        l1 = convolution(self.n_filter, kernel_size=self.kernel_size, drop_rate=self.dropout_rate,
-                         activation=self.activation)(concat1)
+        for d in reversed(range(self.depth)):
+            x = UpSampling2D(size=[2, 2])(x)
+            x = concatenate([x, skips[d]])
+            x = convolution(self.n_filter * (2 ** d), kernel_size=self.kernel_size, dilation_rate=self.dilation_rate,
+                            drop_rate=self.dropout_rate, use_batchnorm=self.use_batchnorm, activation=self.activation)(x)
 
         if self.num_classes == 1:
-            output = Conv2D(1, [1, 1], activation='sigmoid')(l1)
+            output = Conv2D(1, [1, 1], activation='sigmoid')(x)
         else:
-            output = Conv2D(num_classes, [1, 1], activation='softmax')(l1)
+            output = Conv2D(self.num_classes, [1, 1], activation='softmax')(x)
 
         model = Model(inputs=self.input, outputs=output)
 
